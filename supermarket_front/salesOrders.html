@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售订单管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ccc;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        form {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        form input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        form button {
+            padding: 8px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        form button:hover {
+            background-color: #0056b3;
+        }
+
+        .search-form {
+            margin-bottom: 20px;
+        }
+
+        .search-form label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .search-form input {
+            width: 200px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+<h1>销售订单管理</h1>
+
+<!-- 操作按钮 -->
+<button onclick="loadOrders()">查询全部</button>
+<button onclick="showSearchByIdForm()">查询单个</button>
+<button onclick="showAddForm()">添加订单</button>
+
+<!-- 按 ID 搜索订单表单，初始隐藏 -->
+<form class="search-form" id="searchOrderForm" style="display:none;">
+    <label for="searchId">按订单ID搜索：</label>
+    <input type="text" id="searchId">
+    <button type="button" onclick="searchOrderById()">搜索</button>
+</form>
+
+<!-- 订单列表容器 -->
+<div id="orderListContainer"></div>
+
+<!-- 添加订单表单 -->
+<form id="addOrderForm" style="display:none;">
+    <label for="orderId">订单ID:</label>
+    <input type="number" id="orderId" required>
+    <label for="productId">产品ID:</label>
+    <input type="number" id="productId" required>
+    <label for="customerId">客户ID:</label>
+    <input type="number" id="customerId" required>
+    <label for="orderDate">订单日期:</label>
+    <input type="date" id="orderDate" required>
+    <label for="paymentStatus">支付状态:</label>
+    <input type="text" id="paymentStatus" required>
+    <label for="totalPrice">总价:</label>
+    <input type="number" step="0.01" id="totalPrice" required>
+    <label for="paymentMethod">支付方式:</label>
+    <input type="text" id="paymentMethod" required>
+    <button type="submit">添加订单</button>
+</form>
+
+<!-- 更新订单表单 -->
+<form id="updateOrderForm" style="display:none;">
+    <input type="hidden" id="updateOrderId">
+    <label for="updateProductId">产品ID:</label>
+    <input type="number" id="updateProductId" required>
+    <label for="updateCustomerId">客户ID:</label>
+    <input type="number" id="updateCustomerId" required>
+    <label for="updateOrderDate">订单日期:</label>
+    <input type="date" id="updateOrderDate" required>
+    <label for="updatePaymentStatus">支付状态:</label>
+    <input type="text" id="updatePaymentStatus" required>
+    <label for="updateTotalPrice">总价:</label>
+    <input type="number" step="0.01" id="updateTotalPrice" required>
+    <label for="updatePaymentMethod">支付方式:</label>
+    <input type="text" id="updatePaymentMethod" required>
+    <button type="submit">更新订单</button>
+</form>
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    const API_BASE_URL = 'http://localhost:9090/salesOrders';
+
+    // 加载所有订单
+    function loadOrders() {
+        axios.get(API_BASE_URL)
+            .then(response => {
+                const orders = response.data;
+                renderOrderTable(orders);
+            })
+            .catch(error => {
+                handleError(error, '加载订单信息失败');
+            });
+    }
+
+    // 渲染订单表格
+    function renderOrderTable(orders) {
+        const orderListContainer = document.getElementById('orderListContainer');
+        orderListContainer.innerHTML = '';
+
+        if (orders.length === 0) {
+            orderListContainer.innerHTML = '暂无订单数据。';
+            return;
+        }
+
+        const table = document.createElement('table');
+        table.innerHTML = `
+            <tr>
+                <th>订单ID</th>
+                <th>产品ID</th>
+                <th>客户ID</th>
+                <th>订单日期</th>
+                <th>支付状态</th>
+                <th>总价</th>
+                <th>支付方式</th>
+                <th>操作</th>
+            </tr>
+        `;
+
+        orders.forEach(order => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${order.order_id}</td>
+                <td>${order.product_id}</td>
+                <td>${order.customer_id}</td>
+                <td>${order.order_date}</td>
+                <td>${order.payment_status}</td>
+                <td>${order.total_price}</td>
+                <td>${order.payment_method}</td>
+                <td>
+                    <button onclick="showUpdateForm(${order.order_id})">更新</button>
+                    <button onclick="deleteOrder(${order.order_id})">删除</button>
+                </td>
+            `;
+            table.appendChild(row);
+        });
+
+        orderListContainer.appendChild(table);
+    }
+
+    // 显示按 ID 查询表单
+    function showSearchByIdForm() {
+        document.getElementById('searchOrderForm').style.display = 'block';
+    }
+
+    // 按 ID 查询订单
+    function searchOrderById() {
+        const searchId = document.getElementById('searchId').value;
+        if (!searchId) {
+            alert('请输入订单ID');
+            return;
+        }
+
+        axios.get(`${API_BASE_URL}/${searchId}`)
+            .then(response => {
+                const order = response.data;
+                if (order) {
+                    renderOrderTable([order]);
+                } else {
+                    document.getElementById('orderListContainer').innerHTML = '未找到对应订单。';
+                }
+            })
+            .catch(error => {
+                handleError(error, '查询订单信息失败');
+            });
+    }
+
+    // 显示添加订单表单
+    function showAddForm() {
+        document.getElementById('addOrderForm').style.display = 'block';
+        document.getElementById('updateOrderForm').style.display = 'none';
+    }
+
+    // 添加订单
+    document.getElementById('addOrderForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const orderData = {
+            order_id: document.getElementById('orderId').value,
+            product_id: document.getElementById('productId').value,
+            customer_id: document.getElementById('customerId').value,
+            order_date: document.getElementById('orderDate').value,
+            payment_status: document.getElementById('paymentStatus').value,
+            total_price: document.getElementById('totalPrice').value,
+            payment_method: document.getElementById('paymentMethod').value
+        };
+
+        axios.post(API_BASE_URL, orderData)
+            .then(response => {
+                if (response.status === 200) {
+                    alert('添加成功');
+                    loadOrders();
+                    document.getElementById('addOrderForm').reset();
+                    document.getElementById('addOrderForm').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                handleError(error, '添加订单失败');
+            });
+    });
+
+    // 显示更新订单表单
+    function showUpdateForm(orderId) {
+        axios.get(`${API_BASE_URL}/${orderId}`)
+            .then(response => {
+                const order = response.data;
+                document.getElementById('updateOrderId').value = order.order_id;
+                document.getElementById('updateProductId').value = order.product_id;
+                document.getElementById('updateCustomerId').value = order.customer_id;
+                document.getElementById('updateOrderDate').value = order.order_date;
+                document.getElementById('updatePaymentStatus').value = order.payment_status;
+                document.getElementById('updateTotalPrice').value = order.total_price;
+                document.getElementById('updatePaymentMethod').value = order.payment_method;
+
+                document.getElementById('addOrderForm').style.display = 'none';
+                document.getElementById('updateOrderForm').style.display = 'block';
+            })
+            .catch(error => {
+                handleError(error, '加载订单信息失败');
+            });
+    }
+
+    // 更新订单
+    document.getElementById('updateOrderForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const orderId = document.getElementById('updateOrderId').value;
+        const orderData = {
+            product_id: document.getElementById('updateProductId').value,
+            customer_id: document.getElementById('updateCustomerId').value,
+            order_date: document.getElementById('updateOrderDate').value,
+            payment_status: document.getElementById('updatePaymentStatus').value,
+            total_price: document.getElementById('updateTotalPrice').value,
+            payment_method: document.getElementById('updatePaymentMethod').value
+        };
+
+        axios.put(`${API_BASE_URL}/${orderId}`, orderData)
+            .then(response => {
+                if (response.status === 200) {
+                    alert('更新成功');
+                    loadOrders();
+                    document.getElementById('updateOrderForm').reset();
+                    document.getElementById('updateOrderForm').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                handleError(error, '更新订单失败');
+            });
+    });
+
+    // 删除订单
+    function deleteOrder(orderId) {
+        if (confirm('确定要删除该订单吗？')) {
+            axios.delete(`${API_BASE_URL}/${orderId}`)
+                .then(response => {
+                    if (response.status === 200) {
+                        alert('删除成功');
+                        loadOrders();
+                    }
+                })
+                .catch(error => {
+                    handleError(error, '删除订单失败');
+                });
+        }
+    }
+
+    // 错误处理函数
+    function handleError(error, message) {
+        console.error(message, error);
+        alert(`${message}: ${error.response ? error.response.data : error.message}`);
+    }
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>供应商管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ccc;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        form {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        form input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        form button {
+            padding: 8px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .search-form {
+            margin-bottom: 20px;
+        }
+
+        .search-form label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .search-form input {
+            width: 200px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+<h1>供应商管理</h1>
+
+<!-- 操作按钮 -->
+<button onclick="loadAllSuppliers()">查询全部</button>
+<button onclick="showSearchByIdForm()">查询单个</button>
+<button onclick="showAddForm()">添加供应商</button>
+
+<!-- 按 ID 搜索供应商表单，初始隐藏 -->
+<form class="search-form" id="searchSupplierForm" style="display:none;">
+    <label for="searchId">按供应商ID搜索：</label>
+    <input type="text" id="searchId">
+    <button type="button" onclick="searchSupplierById()">搜索</button>
+</form>
+
+<!-- 供应商列表容器 -->
+<div id="supplierListContainer"></div>
+
+<!-- 添加供应商表单 -->
+<form id="addSupplierForm" style="display:none;">
+    <label for="supplierId">供应商ID:</label>
+    <input type="number" id="supplierId" required>
+    <label for="supplierName">供应商名称:</label>
+    <input type="text" id="supplierName" required>
+    <label for="contactInfo">联系信息:</label>
+    <input type="text" id="contactInfo" required>
+    <label for="supplyPrice">供应价格:</label>
+    <input type="number" step="0.01" id="supplyPrice" required>
+    <label for="creditRating">信用评级:</label>
+    <input type="text" id="creditRating" required>
+    <button type="submit">添加供应商</button>
+</form>
+
+<!-- 更新供应商表单 -->
+<form id="updateSupplierForm" style="display:none;">
+    <input type="hidden" id="updateSupplierId">
+    <label for="updateSupplierName">供应商名称:</label>
+    <input type="text" id="updateSupplierName" required>
+    <label for="updateContactInfo">联系信息:</label>
+    <input type="text" id="updateContactInfo" required>
+    <label for="updateSupplyPrice">供应价格:</label>
+    <input type="number" step="0.01" id="updateSupplyPrice" required>
+    <label for="updateCreditRating">信用评级:</label>
+    <input type="text" id="updateCreditRating" required>
+    <button type="submit">更新供应商</button>
+</form>
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    // 加载所有供应商
+    function loadAllSuppliers() {
+        axios.get('http://localhost:9090/suppliers')
+            .then(response => {
+                const supplierListContainer = document.getElementById('supplierListContainer');
+                supplierListContainer.innerHTML = '';
+                const suppliers = response.data;
+                if (suppliers.length === 0) {
+                    supplierListContainer.innerHTML = '暂无供应商数据。';
+                } else {
+                    const table = document.createElement('table');
+                    table.innerHTML = `
+                        <tr>
+                            <th>供应商ID</th>
+                            <th>供应商名称</th>
+                            <th>联系信息</th>
+                            <th>供应价格</th>
+                            <th>信用评级</th>
+                            <th>操作</th>
+                        </tr>
+                    `;
+                    suppliers.forEach(supplier => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${supplier.supplier_id}</td>
+                            <td>${supplier.supplier_name}</td>
+                            <td>${supplier.contact_info}</td>
+                            <td>${supplier.supply_price}</td>
+                            <td>${supplier.credit_rating}</td>
+                            <td>
+                                <button onclick="showUpdateForm(${supplier.supplier_id})">更新</button>
+                                <button onclick="deleteSupplier(${supplier.supplier_id})">删除</button>
+                            </td>
+                        `;
+                        table.appendChild(row);
+                    });
+                    supplierListContainer.appendChild(table);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching suppliers:', error);
+                const supplierListContainer = document.getElementById('supplierListContainer');
+                supplierListContainer.innerHTML = '加载供应商信息失败，请稍后重试。';
+            });
+    }
+
+    // 显示按 ID 查询表单
+    function showSearchByIdForm() {
+        const searchForm = document.getElementById('searchSupplierForm');
+        searchForm.style.display = 'block';
+    }
+
+    // 按 ID 查询供应商
+    function searchSupplierById() {
+        const searchId = document.getElementById('searchId').value;
+        if (searchId) {
+            axios.get(`http://localhost:9090/suppliers/${searchId}`)
+                .then(response => {
+                    const supplierListContainer = document.getElementById('supplierListContainer');
+                    supplierListContainer.innerHTML = '';
+                    const supplier = response.data;
+                    if (supplier) {
+                        const table = document.createElement('table');
+                        table.innerHTML = `
+                            <tr>
+                                <th>供应商ID</th>
+                                <th>供应商名称</th>
+                                <th>联系信息</th>
+                                <th>供应价格</th>
+                                <th>信用评级</th>
+                                <th>操作</th>
+                            </tr>
+                            <tr>
+                                <td>${supplier.supplier_id}</td>
+                                <td>${supplier.supplier_name}</td>
+                                <td>${supplier.contact_info}</td>
+                                <td>${supplier.supply_price}</td>
+                                <td>${supplier.credit_rating}</td>
+                                <td>
+                                    <button onclick="showUpdateForm(${supplier.supplier_id})">更新</button>
+                                    <button onclick="deleteSupplier(${supplier.supplier_id})">删除</button>
+                                </td>
+                            </tr>
+                        `;
+                        supplierListContainer.appendChild(table);
+                    } else {
+                        supplierListContainer.innerHTML = '未找到对应供应商。';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching supplier:', error);
+                    const supplierListContainer = document.getElementById('supplierListContainer');
+                    supplierListContainer.innerHTML = '查询供应商信息失败，请稍后重试。';
+                });
+        }
+    }
+
+    // 显示添加供应商表单
+    function showAddForm() {
+        document.getElementById('addSupplierForm').style.display = 'block';
+        document.getElementById('updateSupplierForm').style.display = 'none';
+    }
+
+    // 添加供应商
+    document.getElementById('addSupplierForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const supplierId = document.getElementById('supplierId').value;
+        const supplierName = document.getElementById('supplierName').value;
+        const contactInfo = document.getElementById('contactInfo').value;
+        const supplyPrice = document.getElementById('supplyPrice').value;
+        const creditRating = document.getElementById('creditRating').value;
+
+        axios.post('http://localhost:9090/suppliers', {
+            supplier_id: supplierId,
+            supplier_name: supplierName,
+            contact_info: contactInfo,
+            supply_price: supplyPrice,
+            credit_rating: creditRating
+        })
+            .then(response => {
+                if (response.status === 200 || response.status === 200) {
+                    alert('添加成功');
+                    loadAllSuppliers(); // 刷新页面
+                    document.getElementById('addSupplierForm').reset();
+                    document.getElementById('addSupplierForm').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error adding supplier:', error);
+            });
+    });
+
+    // 显示更新供应商表单
+    function showUpdateForm(supplierId) {
+        axios.get(`http://localhost:9090/suppliers/${supplierId}`)
+            .then(response => {
+                const supplier = response.data;
+                document.getElementById('updateSupplierId').value = supplier.supplier_id;
+                document.getElementById('updateSupplierName').value = supplier.supplier_name;
+                document.getElementById('updateContactInfo').value = supplier.contact_info;
+                document.getElementById('updateSupplyPrice').value = supplier.supply_price;
+                document.getElementById('updateCreditRating').value = supplier.credit_rating;
+
+                document.getElementById('addSupplierForm').style.display = 'none';
+                document.getElementById('updateSupplierForm').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching supplier for update:', error);
+            });
+    }
+
+    // 更新供应商
+    document.getElementById('updateSupplierForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const supplierId = document.getElementById('updateSupplierId').value;
+        const supplierName = document.getElementById('updateSupplierName').value;
+        const contactInfo = document.getElementById('updateContactInfo').value;
+        const supplyPrice = document.getElementById('updateSupplyPrice').value;
+        const creditRating = document.getElementById('updateCreditRating').value;
+
+        axios.put(`http://localhost:9090/suppliers/${supplierId}`, {
+            supplier_id: supplierId,
+            supplier_name: supplierName,
+            contact_info: contactInfo,
+            supply_price: supplyPrice,
+            credit_rating: creditRating
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('更新成功');
+                    loadAllSuppliers(); // 刷新页面
+                    document.getElementById('updateSupplierForm').reset();
+                    document.getElementById('updateSupplierForm').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error updating supplier:', error);
+            });
+    });
+
+    // 删除供应商
+    function deleteSupplier(supplierId) {
+        if (confirm('确定要删除该供应商吗？')) {
+            axios.delete(`http://localhost:9090/suppliers/${supplierId}`)
+                .then(response => {
+                    if (response.status === 200) {
+                        alert('删除成功');
+                        loadAllSuppliers(); // 刷新页面
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting supplier:', error);
+                });
+        }
+    }
+</script>
+
+</body>
+
+</html>

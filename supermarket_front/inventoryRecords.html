@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>库存记录管理</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      table,
+      th,
+      td {
+        border: 1px solid #ccc;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+      }
+
+      form {
+        background-color: #f9f9f9;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        display: none; /* 初始隐藏表单 */
+      }
+
+      form label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      form input {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+      }
+
+      form button {
+        padding: 8px 15px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+
+      form button:hover {
+        background-color: #0056b3;
+      }
+
+      .search-form {
+        margin-bottom: 20px;
+        display: none; /* 初始隐藏搜索表单 */
+      }
+
+      .search-form label {
+        display: inline-block;
+        margin-right: 10px;
+      }
+
+      .search-form input {
+        width: 200px;
+        display: inline-block;
+      }
+
+      .button-container {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .button-container button {
+        padding: 10px 20px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 5px;
+      }
+
+      .button-container button:hover {
+        background-color: #218838;
+      }
+
+      .back-button {
+        padding: 10px 20px;
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 5px;
+      }
+
+      .back-button:hover {
+        background-color: #5a6268;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>库存记录管理</h1>
+
+    <!-- 按钮容器 -->
+    <div class="button-container">
+      <button onclick="loadAllInventoryRecords()">加载所有库存记录</button>
+      <button onclick="showSearchByIdForm()">根据库存记录ID查询</button>
+      <button class="back-button" onclick="goBack()">返回上一步</button>
+    </div>
+
+    <!-- 根据库存记录ID查询表单 -->
+    <form class="search-form" id="searchByIdForm">
+      <label for="searchInventoryId">按库存记录ID搜索：</label>
+      <input type="text" id="searchInventoryId" />
+      <button type="button" onclick="searchInventoryRecordById()">查询</button>
+      <button type="button" onclick="hideSearchByIdForm()">取消</button>
+    </form>
+
+    <!-- 库存记录列表容器 -->
+    <div id="inventoryRecordListContainer"></div>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+      // 显示根据库存记录ID查询表单
+      function showSearchByIdForm() {
+        hideAllForms(); // 隐藏其他表单
+        document.getElementById("searchByIdForm").style.display = "block";
+      }
+
+      // 隐藏根据库存记录ID查询表单
+      function hideSearchByIdForm() {
+        document.getElementById("searchByIdForm").style.display = "none";
+      }
+
+      // 隐藏所有表单
+      function hideAllForms() {
+        hideSearchByIdForm();
+      }
+
+      // 加载所有库存记录
+      function loadAllInventoryRecords() {
+        axios
+          .get("http://localhost:9090/inventoryRecords")
+          .then((response) => {
+            const inventoryRecordListContainer = document.getElementById(
+              "inventoryRecordListContainer"
+            );
+            inventoryRecordListContainer.innerHTML = "";
+            const records = response.data;
+            if (records.length === 0) {
+              inventoryRecordListContainer.innerHTML =
+                "<p>暂无库存记录数据。</p>";
+            } else {
+              const table = document.createElement("table");
+              table.innerHTML = `<tr><th>库存记录ID</th><th>商品数量</th></tr>`;
+              records.forEach((record) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                  <td>${record.inventory_id}</td>
+                  <td>${record.product_quantity}</td>
+                `;
+                table.appendChild(row);
+              });
+              inventoryRecordListContainer.appendChild(table);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching inventory records:", error);
+            const inventoryRecordListContainer = document.getElementById(
+              "inventoryRecordListContainer"
+            );
+            inventoryRecordListContainer.innerHTML =
+              "加载库存记录信息失败，请稍后重试。";
+          });
+      }
+
+      // 按库存记录ID查询库存记录
+      function searchInventoryRecordById() {
+        const searchInventoryId = document.getElementById("searchInventoryId").value;
+        if (!searchInventoryId) {
+          alert("请输入库存记录ID");
+          return;
+        }
+        axios
+          .get(`http://localhost:9090/inventoryRecords/${searchInventoryId}`)
+          .then((response) => {
+            const inventoryRecordListContainer = document.getElementById(
+              "inventoryRecordListContainer"
+            );
+            inventoryRecordListContainer.innerHTML = "";
+            const record = response.data;
+            if (record) {
+              const table = document.createElement("table");
+              table.innerHTML = `<tr><th>库存记录ID</th><th>商品数量</th></tr>`;
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                <td>${record.inventory_id}</td>
+                <td>${record.product_quantity}</td>
+              `;
+              table.appendChild(row);
+              inventoryRecordListContainer.appendChild(table);
+            } else {
+              inventoryRecordListContainer.innerHTML =
+                "<p>未找到对应库存记录。</p>";
+            }
+          })
+          .catch((error) => {
+            console.error("Error searching inventory record by ID:", error);
+            const inventoryRecordListContainer = document.getElementById(
+              "inventoryRecordListContainer"
+            );
+            inventoryRecordListContainer.innerHTML =
+              "查询库存记录信息失败，请稍后重试。";
+          });
+      }
+
+      // 返回上一步
+      function goBack() {
+        hideAllForms(); // 隐藏所有表单
+        document.getElementById("inventoryRecordListContainer").innerHTML = ""; // 清空列表
+      }
+
+      // 页面加载时隐藏所有表单
+      window.onload = hideAllForms;
+    </script>
+  </body>
+</html>

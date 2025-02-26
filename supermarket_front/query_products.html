@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>查看商品信息</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ccc;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        .search-form {
+            margin-bottom: 20px;
+        }
+
+        .search-form label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .search-form input {
+            width: 200px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+<h1>查看商品信息</h1>
+
+<!-- 按 ID 搜索商品表单 -->
+<form class="search-form" id="searchProductForm">
+    <label for="searchId">按商品ID搜索: </label>
+    <input type="text" id="searchId">
+    <button type="button" onclick="searchProductById()">搜索</button>
+</form>
+
+<!-- 商品信息容器 -->
+<div id="productInfoContainer"></div>
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    // 按 ID 查询商品
+    function searchProductById() {
+        const searchId = document.getElementById('searchId').value;
+        if (searchId) {
+            axios.get(`http://localhost:9090/products/${searchId}`)
+                .then(response => {
+                    const productInfoContainer = document.getElementById('productInfoContainer');
+                    productInfoContainer.innerHTML = '';
+                    const product = response.data;
+                    if (product) {
+                        const table = document.createElement('table');
+                        table.innerHTML = `
+                            <tr>
+                                <th>商品ID</th>
+                                <th>供应商ID</th>
+                                <th>商品名称</th>
+                                <th>分类ID</th>
+                                <th>价格</th>
+                                <th>库存数量</th>
+                                <th>描述</th>
+                            </tr>
+                            <tr>
+                                <td>${product.product_id}</td>
+                                <td>${product.supplier_id}</td>
+                                <td>${product.product_name}</td>
+                                <td>${product.category_id}</td>
+                                <td>${product.price}</td>
+                                <td>${product.stock_quantity}</td>
+                                <td>${product.description}</td>
+                            </tr>
+                        `;
+                        productInfoContainer.appendChild(table);
+                    } else {
+                        productInfoContainer.innerHTML = '未找到对应商品。';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching product:', error);
+                    const productInfoContainer = document.getElementById('productInfoContainer');
+                    productInfoContainer.innerHTML = '查询商品信息失败，请稍后重试。';
+                });
+        } else {
+            alert('请输入商品ID');
+        }
+    }
+</script>
+</body>
+
+</html>

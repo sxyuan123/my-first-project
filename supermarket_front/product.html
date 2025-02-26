@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ccc;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        form {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        form input,
+        form textarea {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        form button {
+            padding: 8px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .search-form {
+            margin-bottom: 20px;
+        }
+
+        .search-form label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .search-form input {
+            width: 200px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+<h1>商品管理</h1>
+
+<!-- 操作按钮 -->
+<button onclick="loadProducts()">查询全部</button>
+<button onclick="showSearchByIdForm()">查询单个</button>
+<button onclick="showAddForm()">添加商品</button>
+
+<!-- 按 ID 搜索商品表单，初始隐藏 -->
+<form class="search-form" id="searchProductForm" style="display:none;">
+    <label for="searchId">按商品ID搜索: </label>
+    <input type="text" id="searchId">
+    <button type="button" onclick="searchProductById()">搜索</button>
+</form>
+
+<!-- 商品列表容器 -->
+<div id="productListContainer"></div>
+
+<!-- 添加商品表单 -->
+<form id="addProductForm" style="display:none;">
+    <label for="productId">商品ID:</label>
+    <input type="number" id="productId" required>
+    <label for="supplierId">供应商ID:</label>
+    <input type="number" id="supplierId" required>
+    <label for="productName">商品名称:</label>
+    <input type="text" id="productName" required>
+    <label for="categoryId">分类ID:</label>
+    <input type="number" id="categoryId" required>
+    <label for="price">价格:</label>
+    <input type="number" step="0.01" id="price" required>
+    <label for="stockQuantity">库存数量:</label>
+    <input type="number" id="stockQuantity" required>
+    <label for="description">描述:</label>
+    <textarea id="description" required></textarea>
+    <button type="submit">添加商品</button>
+</form>
+
+<!-- 更新商品表单 -->
+<form id="updateProductForm" style="display:none;">
+    <input type="hidden" id="updateProductId">
+    <label for="updateSupplierId">供应商ID:</label>
+    <input type="number" id="updateSupplierId" required>
+    <label for="updateProductName">商品名称:</label>
+    <input type="text" id="updateProductName" required>
+    <label for="updateCategoryId">分类ID:</label>
+    <input type="number" id="updateCategoryId" required>
+    <label for="updatePrice">价格:</label>
+    <input type="number" step="0.01" id="updatePrice" required>
+    <label for="updateStockQuantity">库存数量:</label>
+    <input type="number" id="updateStockQuantity" required>
+    <label for="updateDescription">描述:</label>
+    <textarea id="updateDescription" required></textarea>
+    <button type="submit">更新商品</button>
+</form>
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    // 加载所有商品
+    function loadProducts() {
+        axios.get('http://localhost:9090/products')
+            .then(response => {
+                const productListContainer = document.getElementById('productListContainer');
+                productListContainer.innerHTML = '';
+                const products = response.data;
+                if (products.length === 0) {
+                    productListContainer.innerHTML = '暂无商品数据。';
+                } else {
+                    const table = document.createElement('table');
+                    table.innerHTML = `
+                        <tr>
+                            <th>商品ID</th>
+                            <th>供应商ID</th>
+                            <th>商品名称</th>
+                            <th>分类ID</th>
+                            <th>价格</th>
+                            <th>库存数量</th>
+                            <th>描述</th>
+                            <th>操作</th>
+                        </tr>
+                    `;
+                    products.forEach(product => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${product.product_id}</td>
+                            <td>${product.supplier_id}</td>
+                            <td>${product.product_name}</td>
+                            <td>${product.category_id}</td>
+                            <td>${product.price}</td>
+                            <td>${product.stock_quantity}</td>
+                            <td>${product.description}</td>
+                            <td>
+                                <button onclick="showUpdateForm(${product.product_id})">更新</button>
+                                <button onclick="deleteProduct(${product.product_id})">删除</button>
+                            </td>
+                        `;
+                        table.appendChild(row);
+                    });
+                    productListContainer.appendChild(table);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching products:', error);
+                const productListContainer = document.getElementById('productListContainer');
+                productListContainer.innerHTML = '加载商品信息失败，请稍后重试。';
+            });
+    }
+
+    // 显示按 ID 查询表单
+    function showSearchByIdForm() {
+        const searchForm = document.getElementById('searchProductForm');
+        searchForm.style.display = 'block';
+    }
+
+    // 按 ID 查询商品
+    function searchProductById() {
+        const searchId = document.getElementById('searchId').value;
+        if (searchId) {
+            axios.get(`http://localhost:9090/products/${searchId}`)
+                .then(response => {
+                    const productListContainer = document.getElementById('productListContainer');
+                    productListContainer.innerHTML = '';
+                    const product = response.data;
+                    if (product) {
+                        const table = document.createElement('table');
+                        table.innerHTML = `
+                            <tr>
+                                <th>商品ID</th>
+                                <th>供应商ID</th>
+                                <th>商品名称</th>
+                                <th>分类ID</th>
+                                <th>价格</th>
+                                <th>库存数量</th>
+                                <th>描述</th>
+                                <th>操作</th>
+                            </tr>
+                            <tr>
+                                <td>${product.product_id}</td>
+                                <td>${product.supplier_id}</td>
+                                <td>${product.product_name}</td>
+                                <td>${product.category_id}</td>
+                                <td>${product.price}</td>
+                                <td>${product.stock_quantity}</td>
+                                <td>${product.description}</td>
+                                <td>
+                                    <button onclick="showUpdateForm(${product.product_id})">更新</button>
+                                    <button onclick="deleteProduct(${product.product_id})">删除</button>
+                                </td>
+                            </tr>
+                        `;
+                        productListContainer.appendChild(table);
+                    } else {
+                        productListContainer.innerHTML = '未找到对应商品。';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching product:', error);
+                    const productListContainer = document.getElementById('productListContainer');
+                    productListContainer.innerHTML = '查询商品信息失败，请稍后重试。';
+                });
+        }
+    }
+
+    // 显示添加商品表单
+    function showAddForm() {
+        document.getElementById('addProductForm').style.display = 'block';
+        document.getElementById('updateProductForm').style.display = 'none';
+    }
+
+    // 添加商品
+    document.getElementById('addProductForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const productId = document.getElementById('productId').value;
+        const supplierId = document.getElementById('supplierId').value;
+        const productName = document.getElementById('productName').value;
+        const categoryId = document.getElementById('categoryId').value;
+        const price = document.getElementById('price').value;
+        const stockQuantity = document.getElementById('stockQuantity').value;
+        const description = document.getElementById('description').value;
+
+        axios.post('http://localhost:9090/products', {
+            product_id: productId,
+            supplier_id: supplierId,
+            product_name: productName,
+            category_id: categoryId,
+            price: price,
+            stock_quantity: stockQuantity,
+            description: description
+        })
+            .then(response => {
+                if (response.status === 200 || response.status === 200) {
+                    alert('添加成功');
+                    loadProducts(); // 刷新页面
+                    document.getElementById('addProductForm').reset();
+                    document.getElementById('addProductForm').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error adding product:', error);
+            });
+    });
+
+    // 显示更新商品表单
+    function showUpdateForm(productId) {
+        axios.get(`http://localhost:9090/products/${productId}`)
+            .then(response => {
+                const product = response.data;
+                document.getElementById('updateProductId').value = product.product_id;
+                document.getElementById('updateSupplierId').value = product.supplier_id;
+                document.getElementById('updateProductName').value = product.product_name;
+                document.getElementById('updateCategoryId').value = product.category_id;
+                document.getElementById('updatePrice').value = product.price;
+                document.getElementById('updateStockQuantity').value = product.stock_quantity;
+                document.getElementById('updateDescription').value = product.description;
+
+                document.getElementById('addProductForm').style.display = 'none';
+                document.getElementById('updateProductForm').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching product for update:', error);
+            });
+    }
+
+    // 更新商品
+    document.getElementById('updateProductForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const productId = document.getElementById('updateProductId').value;
+        const supplierId = document.getElementById('updateSupplierId').value;
+        const productName = document.getElementById('updateProductName').value;
+        const categoryId = document.getElementById('updateCategoryId').value;
+        const price = document.getElementById('updatePrice').value;
+        const stockQuantity = document.getElementById('updateStockQuantity').value;
+        const description = document.getElementById('updateDescription').value;
+
+        axios.put(`http://localhost:9090/products/${productId}`, {
+            product_id: productId,
+            supplier_id: supplierId,
+            product_name: productName,
+            category_id: categoryId,
+            price: price,
+            stock_quantity: stockQuantity,
+            description: description
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('更新成功');
+                    loadProducts(); // 刷新页面
+                    document.getElementById('updateProductForm').reset();
+                    document.getElementById('updateProductForm').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error updating product:', error);
+            });
+    });
+
+    // 删除商品
+    function deleteProduct(productId) {
+        if (confirm('确定要删除该商品吗？')) {
+            axios.delete(`http://localhost:9090/products/${productId}`)
+                .then(response => {
+                    if (response.status === 200) {
+                        alert('删除成功');
+                        loadProducts(); // 刷新页面
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting product:', error);
+                });
+        }
+    }
+</script>
+
+</body>
+
+</html>

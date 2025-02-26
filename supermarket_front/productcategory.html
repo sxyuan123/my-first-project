@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品分类管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ccc;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        form {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        form input,
+        form textarea {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        form button {
+            padding: 8px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .search-form {
+            margin-bottom: 20px;
+        }
+
+        .search-form label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .search-form input {
+            width: 200px;
+            display: inline-block;
+        }
+
+        #loading {
+            display: none;
+            margin-bottom: 20px;
+            color: #007BFF;
+        }
+    </style>
+</head>
+
+<body>
+<h1>商品分类管理</h1>
+
+<!-- 加载提示 -->
+<div id="loading">加载中，请稍候...</div>
+
+<!-- 操作按钮 -->
+<button onclick="loadCategories()">查询全部</button>
+<button onclick="showSearchByIdForm()">查询单个</button>
+<button onclick="showAddForm()">添加商品分类</button>
+
+<!-- 按 ID 搜索商品分类表单，初始隐藏 -->
+<form class="search-form" id="searchCategoryForm" style="display:none;">
+    <label for="searchId">按分类ID搜索：</label>
+    <input type="text" id="searchId">
+    <button type="button" onclick="searchCategoryById()">搜索</button>
+</form>
+
+<!-- 商品分类列表容器 -->
+<div id="categoryListContainer"></div>
+
+<!-- 添加商品分类表单 -->
+<form id="addCategoryForm" style="display:none;">
+    <label for="categoryId">分类ID:</label>
+    <input type="number" id="categoryId" required>
+    <label for="categoryName">分类名称:</label>
+    <input type="text" id="categoryName" required>
+    <label for="description">描述:</label>
+    <textarea id="description" required></textarea>
+    <button type="submit">添加商品分类</button>
+</form>
+
+<!-- 更新商品分类表单 -->
+<form id="updateCategoryForm" style="display:none;">
+    <input type="hidden" id="updateCategoryId">
+    <label for="updateCategoryName">分类名称:</label>
+    <input type="text" id="updateCategoryName" required>
+    <label for="updateDescription">描述:</label>
+    <textarea id="updateDescription" required></textarea>
+    <button type="submit">更新商品分类</button>
+</form>
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    const API_BASE_URL = 'http://localhost:9090/product-categories';
+
+    // 加载所有商品分类
+    function loadCategories() {
+        setLoading(true);
+        axios.get(API_BASE_URL)
+            .then(response => {
+                renderCategoryTable(response.data);
+            })
+            .catch(error => {
+                console.error('Error fetching categories:', error);
+                alert('加载商品分类信息失败，请稍后重试。');
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }
+
+    // 显示按 ID 查询表单
+    function showSearchByIdForm() {
+        toggleForm('searchCategoryForm', true);
+    }
+
+    // 按 ID 查询商品分类
+    function searchCategoryById() {
+        const searchId = document.getElementById('searchId').value;
+        if (searchId) {
+            setLoading(true);
+            axios.get(`${API_BASE_URL}/${searchId}`)
+                .then(response => {
+                    renderCategoryTable([response.data]);
+                })
+                .catch(error => {
+                    console.error('Error searching category:', error);
+                    alert('查询商品分类信息失败，请稍后重试。');
+                })
+                .finally(() => {
+                    setLoading(false);
+                });
+        } else {
+            alert('请输入分类ID');
+        }
+    }
+
+    // 显示添加商品分类表单
+    function showAddForm() {
+        toggleForm('addCategoryForm', true);
+        toggleForm('updateCategoryForm', false);
+    }
+
+    // 添加商品分类
+    document.getElementById('addCategoryForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const categoryId = document.getElementById('categoryId').value;
+        const categoryName = document.getElementById('categoryName').value;
+        const description = document.getElementById('description').value;
+
+        if (!validateCategoryForm(categoryId, categoryName, description)) {
+            return;
+        }
+
+        axios.post(API_BASE_URL, {
+            category_id: categoryId,
+            category_name: categoryName,
+            description: description
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('添加成功');
+                    loadCategories();
+                    document.getElementById('addCategoryForm').reset();
+                    toggleForm('addCategoryForm', false);
+                }
+            })
+            .catch(error => {
+                console.error('Error adding category:', error);
+                alert('添加失败，请稍后重试');
+            });
+    });
+
+    // 显示更新商品分类表单
+    function showUpdateForm(categoryId) {
+        axios.get(`${API_BASE_URL}/${categoryId}`)
+            .then(response => {
+                const category = response.data;
+                document.getElementById('updateCategoryId').value = category.category_id;
+                document.getElementById('updateCategoryName').value = category.category_name;
+                document.getElementById('updateDescription').value = category.description;
+
+                toggleForm('addCategoryForm', false);
+                toggleForm('updateCategoryForm', true);
+            })
+            .catch(error => {
+                console.error('Error fetching category for update:', error);
+            });
+    }
+
+    // 更新商品分类
+    document.getElementById('updateCategoryForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const categoryId = document.getElementById('updateCategoryId').value;
+        const categoryName = document.getElementById('updateCategoryName').value;
+        const description = document.getElementById('updateDescription').value;
+
+        if (!validateCategoryForm(categoryId, categoryName, description)) {
+            return;
+        }
+
+        axios.put(`${API_BASE_URL}/${categoryId}`, {
+            category_id: categoryId,
+            category_name: categoryName,
+            description: description
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('更新成功');
+                    loadCategories();
+                    document.getElementById('updateCategoryForm').reset();
+                    toggleForm('updateCategoryForm', false);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating category:', error);
+                alert('更新失败，请稍后重试');
+            });
+    });
+
+    // 删除商品分类
+    function deleteCategory(categoryId) {
+        if (confirm('确定要删除该商品分类吗？')) {
+            axios.delete(`${API_BASE_URL}/${categoryId}`)
+                .then(response => {
+                    if (response.status === 200) {
+                        alert('删除成功');
+                        loadCategories();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting category:', error);
+                    alert('删除失败，请稍后重试');
+                });
+        }
+    }
+
+    // 渲染商品分类表格
+    function renderCategoryTable(categories) {
+        const categoryListContainer = document.getElementById('categoryListContainer');
+        categoryListContainer.innerHTML = '';
+        if (!categories || categories.length === 0) {
+            categoryListContainer.innerHTML = '暂无商品分类数据。';
+        } else {
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <tr>
+                    <th>分类ID</th>
+                    <th>分类名称</th>
+                    <th>描述</th>
+                    <th>操作</th>
+                </tr>
+            `;
+            categories.forEach(category => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${category.category_id}</td>
+                    <td>${category.category_name}</td>
+                    <td>${category.description}</td>
+                    <td>
+                        <button onclick="showUpdateForm(${category.category_id})">更新</button>
+                        <button onclick="deleteCategory(${category.category_id})">删除</button>
+                    </td>
+                `;
+                table.appendChild(row);
+            });
+            categoryListContainer.appendChild(table);
+        }
+    }
+
+    // 表单验证
+    function validateCategoryForm(categoryId, categoryName, description) {
+        if (!categoryId || isNaN(categoryId)) {
+            alert('分类ID必须为数字');
+            return false;
+        }
+        if (!categoryName || categoryName.length > 50) {
+            alert('分类名称不能为空且长度不能超过50个字符');
+            return false;
+        }
+        if (!description || description.length > 200) {
+            alert('描述不能为空且长度不能超过200个字符');
+            return false;
+        }
+        return true;
+    }
+
+    // 切换表单显示状态
+    function toggleForm(formId, show = true) {
+        document.getElementById(formId).style.display = show ? 'block' : 'none';
+    }
+
+    // 设置加载状态
+    function setLoading(isLoading) {
+        document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
+    }
+</script>
+
+</body>
+
+</html>

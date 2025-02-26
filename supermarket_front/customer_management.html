@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>客户管理</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      table,
+      th,
+      td {
+        border: 1px solid #ccc;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+      }
+
+      form {
+        background-color: #f9f9f9;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      }
+
+      form label {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      form input {
+        width: 100%;
+        padding: 5px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+      }
+
+      form button {
+        padding: 8px 15px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+
+      .search-form {
+        margin-bottom: 20px;
+      }
+
+      .search-form label {
+        display: inline-block;
+        margin-right: 10px;
+      }
+
+      .search-form input {
+        width: 200px;
+        display: inline-block;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>客户管理</h1>
+
+    <!-- 操作按钮 -->
+    <button onclick="loadCustomers()">查询全部</button>
+    <button onclick="showSearchByIdForm()">查询单个</button>
+    <button onclick="showAddForm()">添加客户</button>
+
+    <!-- 按 ID 搜索客户表单，初始隐藏 -->
+    <form class="search-form" id="searchCustomerForm" style="display: none">
+      <label for="searchId">按 ID 搜索：</label>
+      <input type="text" id="searchId" />
+      <button type="button" onclick="searchCustomerById()">搜索</button>
+    </form>
+
+    <!-- 客户列表容器 -->
+    <div id="customerListContainer"></div>
+
+    <!-- 添加客户表单 -->
+    <form id="addCustomerForm" style="display: none">
+      <label for="customer_id">客户ID:</label>
+      <input type="text" id="customer_id" required />
+      <label for="customer_name">客户姓名:</label>
+      <input type="text" id="customer_name" required />
+      <label for="contact_info">联系信息:</label>
+      <input type="text" id="contact_info" required />
+      <label for="membership_level">会员等级:</label>
+      <input type="number" id="membership_level" required />
+      <label for="points">积分:</label>
+      <input type="number" id="points" required />
+      <label for="discounts">折扣:</label>
+      <input type="number" id="discounts" required />
+      <button type="submit">添加客户</button>
+    </form>
+
+    <!-- 更新客户表单 -->
+    <form id="updateCustomerForm" style="display: none" onsubmit="updateCustomer(event)">
+      <label for="update_customer_id">客户ID:</label>
+      <input type="text" id="update_customer_id" readonly />
+      <label for="update_customer_name">客户姓名:</label>
+      <input type="text" id="update_customer_name" />
+      <label for="update_contact_info">联系方式:</label>
+      <input type="text" id="update_contact_info" />
+      <label for="update_membership_level">会员等级:</label>
+      <input type="text" id="update_membership_level" />
+      <label for="update_points">积分:</label>
+      <input type="number" id="update_points" />
+      <label for="update_discounts">折扣:</label>
+      <input type="number" id="update_discounts" />
+      <button type="submit">更新客户</button>
+    </form>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+      // 加载所有客户
+      function loadCustomers() {
+        axios
+          .get("http://localhost:9090/customers")
+          .then((response) => {
+            const customerListContainer = document.getElementById(
+              "customerListContainer"
+            );
+            customerListContainer.innerHTML = "";
+            const customers = response.data;
+            if (customers.length === 0) {
+              customerListContainer.innerHTML = "暂无客户数据。";
+            } else {
+              // 按 customer_id 排序（升序）
+              customers.sort((a, b) => a.customer_id - b.customer_id);
+
+              customers.forEach((customer) => {
+                const customerItem = document.createElement("div");
+                customerItem.innerHTML = `
+                  <p>客户 ID: ${customer.customer_id}</p>
+                  <p>客户姓名: ${customer.customer_name}</p>
+                  <p>联系信息: ${customer.contact_info}</p>
+                  <p>会员等级: ${customer.membership_level}</p>
+                  <p>积分: ${customer.points}</p>
+                  <p>折扣: ${customer.discounts}</p>
+                  <button onclick="deleteCustomer(${customer.customer_id})">删除</button>
+                  <button onclick="showUpdateForm(${customer.customer_id})">更新</button>
+                `;
+                customerListContainer.appendChild(customerItem);
+              });
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching customers:", error);
+            const customerListContainer = document.getElementById(
+              "customerListContainer"
+            );
+            customerListContainer.innerHTML = "加载客户信息失败，请稍后重试。";
+          });
+      }
+
+      // 显示按 ID 查询表单
+      function showSearchByIdForm() {
+        const searchForm = document.getElementById("searchCustomerForm");
+        searchForm.style.display = "block";
+      }
+
+      // 按 ID 查询客户
+      function searchCustomerById() {
+        const searchId = document.getElementById("searchId").value;
+        if (searchId) {
+          axios
+            .get(`http://localhost:9090/customers/${searchId}`)
+            .then((response) => {
+              const customerListContainer = document.getElementById(
+                "customerListContainer"
+              );
+              customerListContainer.innerHTML = "";
+              const customer = response.data;
+              if (customer) {
+                const customerItem = document.createElement("div");
+                customerItem.innerHTML = `
+                  <p>客户 ID: ${customer.customer_id}</p>
+                  <p>客户姓名: ${customer.customer_name}</p>
+                  <p>联系信息: ${customer.contact_info}</p>
+                  <p>会员等级: ${customer.membership_level}</p>
+                  <p>积分: ${customer.points}</p>
+                  <p>折扣: ${customer.discounts}</p>
+                  <button onclick="deleteCustomer(${customer.customer_id})">删除</button>
+                  <button onclick="showUpdateForm(${customer.customer_id})">更新</button>
+                `;
+                customerListContainer.appendChild(customerItem);
+              } else {
+                customerListContainer.innerHTML = "未找到对应客户。";
+              }
+            })
+            .catch((error) => {
+              console.error("Error searching customer:", error);
+              const customerListContainer = document.getElementById(
+                "customerListContainer"
+              );
+              customerListContainer.innerHTML =
+                "查询客户信息失败，请稍后重试。";
+            });
+        }
+      }
+
+      // 显示添加客户表单
+      function showAddForm() {
+        document.getElementById("addCustomerForm").style.display = "block";
+        document.getElementById("updateCustomerForm").style.display = "none";
+      }
+
+      // 添加客户
+      document
+        .getElementById("addCustomerForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const customer_id = document.getElementById("customer_id").value;
+          const customer_name = document.getElementById("customer_name").value;
+          const contact_info = document.getElementById("contact_info").value;
+          const membership_level =
+            document.getElementById("membership_level").value;
+          const points = document.getElementById("points").value;
+          const discounts = document.getElementById("discounts").value;
+
+          // 检查用户是否填写了客户ID
+          if (!customer_id || customer_id <= 0) {
+            alert("请填写有效的客户ID");
+            return;
+          }
+
+          axios
+            .post("http://localhost:9090/customers", {
+              customer_id: customer_id, // 传递客户ID
+              customer_name: customer_name,
+              contact_info: contact_info,
+              membership_level: membership_level,
+              points: points,
+              discounts: discounts,
+            })
+            .then((response) => {
+              alert("添加成功");
+              loadCustomers(); // 重新加载客户列表
+              document.getElementById("addCustomerForm").reset();
+              document.getElementById("addCustomerForm").style.display = "none"; // 隐藏表单
+            })
+            .catch((error) => {
+              console.error("Error adding customer:", error);
+              alert("添加客户失败，请重试");
+            });
+        });
+
+      // 显示更新客户表单
+      function showUpdateForm(customerId) {
+        axios
+          .get(`http://localhost:9090/customers/${customerId}`)
+          .then((response) => {
+            const customer = response.data;
+            if (customer) {
+              document.getElementById("update_customer_id").value = customer.customer_id;
+              document.getElementById("update_customer_name").value = customer.customer_name;
+              document.getElementById("update_contact_info").value = customer.contact_info;
+              document.getElementById("update_membership_level").value = customer.membership_level;
+              document.getElementById("update_points").value = customer.points;
+              document.getElementById("update_discounts").value = customer.discounts;
+              document.getElementById("updateCustomerForm").style.display = "block";
+              document.getElementById("addCustomerForm").style.display = "none";
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching customer:", error);
+            alert("获取客户信息失败，请稍后重试");
+          });
+      }
+
+      // 更新客户
+      function updateCustomer(event) {
+        event.preventDefault();
+
+        const customerId = document.getElementById("update_customer_id").value;
+        const customerName = document.getElementById("update_customer_name").value;
+        const contactInfo = document.getElementById("update_contact_info").value;
+        const membershipLevel = document.getElementById("update_membership_level").value;
+        const points = document.getElementById("update_points").value;
+        const discounts = document.getElementById("update_discounts").value;
+
+        if (!customerId || !customerName || !contactInfo || !membershipLevel || !points || !discounts) {
+          alert("请填写所有字段");
+          return;
+        }
+
+        axios
+          .put(`http://localhost:9090/customers/${customerId}`, {
+            customer_name: customerName,
+            contact_info: contactInfo,
+            membership_level: membershipLevel,
+            points: points,
+            discounts: discounts,
+          })
+          .then((response) => {
+            alert("更新成功");
+            loadCustomers(); // 更新客户列表
+            document.getElementById("updateCustomerForm").reset();
+            document.getElementById("updateCustomerForm").style.display = "none"; // 隐藏表单
+          })
+          .catch((error) => {
+            console.error("Error updating customer:", error);
+            alert("更新客户失败，请重试");
+          });
+      }
+
+      // 删除客户
+      function deleteCustomer(customerId) {
+        axios
+          .delete(`http://localhost:9090/customers/${customerId}`)
+          .then(() => {
+            alert("删除成功");
+            loadCustomers(); // 删除成功后重新加载客户列表
+          })
+          .catch((error) => {
+            console.error("Error deleting customer:", error);
+            alert("删除客户失败，请重试");
+          });
+      }
+    </script>
+  </body>
+</html>

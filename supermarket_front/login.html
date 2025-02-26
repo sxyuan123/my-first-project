@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统登录</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        form {
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+<form id="loginForm">
+    <h2>登录</h2>
+    <select id="roleSelect">
+        <option value="管理员">管理员</option>
+        <option value="销售员">销售员</option>
+        <option value="后勤人员">后勤人员</option>
+        <option value="财务人员">财务人员</option>
+    </select>
+    <input type="text" id="username" placeholder="账号">
+    <input type="password" id="password" placeholder="密码">
+    <button type="button" onclick="handleLogin()">登录</button>
+</form>
+<script>
+    function handleLogin() {
+        const role = document.getElementById('roleSelect').value;
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        if (role === "管理员" && username === "guanli" && password === "123") {
+            window.location.href = "admin.html";  // 管理员跳转到 admin.html
+        } else if (role === "销售员" && username === "xiaoshou" && password === "123") {
+            window.location.href = "salesman.html";  // 销售员跳转到 salesman.html
+        } else if (role === "后勤人员" && username === "houqin" && password === "123") {
+            window.location.href = "logistics.html";  // 后勤人员跳转到 logistics.html
+        }else if(role === "财务人员" && username === "caiwu" && password === "123"){
+            window.location.href = "financeStaff.html";
+        }
+        else {
+            alert("账号或密码错误");
+        }
+    }
+</script>
+</body>
+
+</html>

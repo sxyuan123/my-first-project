@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>支付记录管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ccc;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        form {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        form input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        form textarea {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        form button {
+            padding: 8px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .search-form {
+            margin-bottom: 20px;
+        }
+
+        .search-form label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .search-form input {
+            width: 200px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>支付记录管理</h1>
+
+    <!-- 支付记录显示容器 -->
+    <div id="paymentRecordListContainer"></div>
+
+    <!-- 操作按钮 -->
+    <button onclick="loadAllPaymentRecords()">查询全部</button>
+    <button onclick="showSearchByIdForm()">查询单个</button>
+    <button onclick="showAddForm()">添加支付记录</button>
+
+    <!-- 按 ID 搜索支付记录表单，初始隐藏 -->
+    <form class="search-form" id="searchPaymentRecordForm" style="display:none;">
+        <label for="searchId">按支付记录ID搜索：</label>
+        <input type="text" id="searchId">
+        <button type="button" onclick="searchPaymentRecordById()">搜索</button>
+    </form>
+
+    <!-- 添加支付记录表单 -->
+    <form id="addPaymentRecordForm" style="display:none;">
+        <label for="paymentId">支付记录ID:</label>
+        <input type="number" id="paymentId" required>
+        <label for="orderId">订单ID:</label>
+        <input type="number" id="orderId" required>
+        <label for="paymentMethod">支付方式:</label>
+        <input type="text" id="paymentMethod" required>
+        <label for="paymentTime">支付时间:</label>
+        <input type="datetime-local" id="paymentTime" required>
+        <label for="paymentAmount">支付金额:</label>
+        <input type="number" step="0.01" id="paymentAmount" required>
+        <label for="paymentStatus">支付状态:</label>
+        <input type="text" id="paymentStatus" required>
+        <button type="submit">添加支付记录</button>
+    </form>
+
+    <!-- 更新支付记录表单 -->
+    <form id="updatePaymentRecordForm" style="display:none;">
+        <input type="hidden" id="updatePaymentId">
+        <label for="updateOrderId">订单ID:</label>
+        <input type="number" id="updateOrderId" required>
+        <label for="updatePaymentMethod">支付方式:</label>
+        <input type="text" id="updatePaymentMethod" required>
+        <label for="updatePaymentTime">支付时间:</label>
+        <input type="datetime-local" id="updatePaymentTime" required>
+        <label for="updatePaymentAmount">支付金额:</label>
+        <input type="number" step="0.01" id="updatePaymentAmount" required>
+        <label for="updatePaymentStatus">支付状态:</label>
+        <input type="text" id="updatePaymentStatus" required>
+        <button type="submit">更新支付记录</button>
+    </form>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+        // 加载所有支付记录
+        function loadAllPaymentRecords() {
+            axios.get('http://localhost:9090/paymentRecords')
+                .then(response => {
+                    const paymentRecordListContainer = document.getElementById('paymentRecordListContainer');
+                    paymentRecordListContainer.innerHTML = '';
+                    const records = response.data;
+                    if (records.length === 0) {
+                        paymentRecordListContainer.innerHTML = '暂无支付记录数据。';
+                    } else {
+                        const table = document.createElement('table');
+                        table.innerHTML = `
+                            <tr>
+                                <th>支付记录ID</th>
+                                <th>订单ID</th>
+                                <th>支付方式</th>
+                                <th>支付时间</th>
+                                <th>支付金额</th>
+                                <th>支付状态</th>
+                                <th>操作</th>
+                            </tr>
+                        `;
+                        records.forEach(record => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${record.payment_id}</td>
+                                <td>${record.order_id}</td>
+                                <td>${record.payment_method}</td>
+                                <td>${new Date(record.payment_time).toLocaleString()}</td>
+                                <td>${record.payment_amount}</td>
+                                <td>${record.payment_status}</td>
+                                <td>
+                                    <button onclick="showUpdateForm(${record.payment_id})">更新</button>
+                                    <button onclick="deletePaymentRecord(${record.payment_id})">删除</button>
+                                </td>
+                            `;
+                            table.appendChild(row);
+                        });
+                        paymentRecordListContainer.appendChild(table);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching payment records:', error);
+                    const paymentRecordListContainer = document.getElementById('paymentRecordListContainer');
+                    paymentRecordListContainer.innerHTML = '加载支付记录信息失败，请稍后重试。';
+                });
+        }
+
+        // 显示按 ID 查询表单
+        function showSearchByIdForm() {
+            document.getElementById('searchPaymentRecordForm').style.display = 'block';
+            document.getElementById('addPaymentRecordForm').style.display = 'none';
+            document.getElementById('updatePaymentRecordForm').style.display = 'none';
+        }
+
+        // 按 ID 查询支付记录
+        function searchPaymentRecordById() {
+            const searchId = document.getElementById('searchId').value;
+            if (searchId) {
+                axios.get(`http://localhost:9090/paymentRecords/${searchId}`)
+                    .then(response => {
+                        const paymentRecordListContainer = document.getElementById('paymentRecordListContainer');
+                        paymentRecordListContainer.innerHTML = '';
+                        const record = response.data;
+                        if (record) {
+                            const table = document.createElement('table');
+                            table.innerHTML = `
+                                <tr>
+                                    <th>支付记录ID</th>
+                                    <th>订单ID</th>
+                                    <th>支付方式</th>
+                                    <th>支付时间</th>
+                                    <th>支付金额</th>
+                                    <th>支付状态</th>
+                                    <th>操作</th>
+                                </tr>
+                                <tr>
+                                    <td>${record.payment_id}</td>
+                                    <td>${record.order_id}</td>
+                                    <td>${record.payment_method}</td>
+                                    <td>${new Date(record.payment_time).toLocaleString()}</td>
+                                    <td>${record.payment_amount}</td>
+                                    <td>${record.payment_status}</td>
+                                    <td>
+                                        <button onclick="showUpdateForm(${record.payment_id})">更新</button>
+                                        <button onclick="deletePaymentRecord(${record.payment_id})">删除</button>
+                                    </td>
+                                </tr>
+                            `;
+                            paymentRecordListContainer.appendChild(table);
+                        } else {
+                            paymentRecordListContainer.innerHTML = '未找到对应支付记录。';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error searching payment record:', error);
+                        const paymentRecordListContainer = document.getElementById('paymentRecordListContainer');
+                        paymentRecordListContainer.innerHTML = '查询支付记录信息失败，请稍后重试。';
+                    });
+            }
+        }
+
+        // 显示添加支付记录表单
+        function showAddForm() {
+            document.getElementById('addPaymentRecordForm').reset();
+            document.getElementById('addPaymentRecordForm').style.display = 'block';
+            document.getElementById('updatePaymentRecordForm').style.display = 'none';
+            document.getElementById('searchPaymentRecordForm').style.display = 'none';
+        }
+
+        // 添加支付记录
+        document.getElementById('addPaymentRecordForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const paymentId = document.getElementById('paymentId').value;
+            const orderId = document.getElementById('orderId').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const paymentTime = document.getElementById('paymentTime').value;
+            const paymentAmount = document.getElementById('paymentAmount').value;
+            const paymentStatus = document.getElementById('paymentStatus').value;
+
+            axios.post('http://localhost:9090/paymentRecords', {
+                payment_id: paymentId,
+                order_id: orderId,
+                payment_method: paymentMethod,
+                payment_time: paymentTime,
+                payment_amount: paymentAmount,
+                payment_status: paymentStatus
+            })
+                .then(response => {
+                    if (response.status === 200) {
+                        alert('添加成功');
+                        loadAllPaymentRecords();
+                        document.getElementById('addPaymentRecordForm').reset();
+                        document.getElementById('addPaymentRecordForm').style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error adding payment record:', error);
+                    alert('添加失败，请稍后重试');
+                });
+        });
+
+        // 显示更新支付记录表单
+        function showUpdateForm(paymentId) {
+            axios.get(`http://localhost:9090/paymentRecords/${paymentId}`)
+                .then(response => {
+                    const record = response.data;
+                    document.getElementById('updatePaymentId').value = record.payment_id;
+                    document.getElementById('updateOrderId').value = record.order_id;
+                    document.getElementById('updatePaymentMethod').value = record.payment_method;
+                    document.getElementById('updatePaymentTime').value = record.payment_time.replace(' ', 'T');
+                    document.getElementById('updatePaymentAmount').value = record.payment_amount;
+                    document.getElementById('updatePaymentStatus').value = record.payment_status;
+
+                    document.getElementById('addPaymentRecordForm').style.display = 'none';
+                    document.getElementById('updatePaymentRecordForm').style.display = 'block';
+                    document.getElementById('searchPaymentRecordForm').style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error fetching payment record for update:', error);
+                });
+        }
+
+        // 更新支付记录
+        document.getElementById('updatePaymentRecordForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const paymentId = document.getElementById('updatePaymentId').value;
+            const orderId = document.getElementById('updateOrderId').value;
+            const paymentMethod = document.getElementById('updatePaymentMethod').value;
+            const paymentTime = document.getElementById('updatePaymentTime').value;
+            const paymentAmount = document.getElementById('updatePaymentAmount').value;
+            const paymentStatus = document.getElementById('updatePaymentStatus').value;
+
+            axios.put(`http://localhost:9090/paymentRecords/${paymentId}`, {
+                payment_id: paymentId,
+                order_id: orderId,
+                payment_method: paymentMethod,
+                payment_time: paymentTime,
+                payment_amount: paymentAmount,
+                payment_status: paymentStatus
+            })
+                .then(response => {
+                    if (response.status === 200) {
+                        alert('更新成功');
+                        loadAllPaymentRecords();
+                        document.getElementById('updatePaymentRecordForm').reset();
+                        document.getElementById('updatePaymentRecordForm').style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating payment record:', error);
+                    alert('更新失败，请稍后重试');
+                });
+        });
+
+        // 删除支付记录
+        function deletePaymentRecord(paymentId) {
+            if (confirm('确定要删除该支付记录吗？')) {
+                axios.delete(`http://localhost:9090/paymentRecords/${paymentId}`)
+                    .then(response => {
+                        if (response.status === 200) {
+                            alert('删除成功');
+                            loadAllPaymentRecords();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting payment record:', error);
+                        alert('删除失败，请稍后重试');
+                    });
+            }
+        }
+    </script>
+</body>
+
+</html>

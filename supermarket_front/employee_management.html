@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>员工管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ccc;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        form {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        form input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        form button {
+            padding: 8px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .search-form {
+            margin-bottom: 20px;
+        }
+
+        .search-form label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .search-form input {
+            width: 200px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+<h1>员工管理</h1>
+
+<!-- 操作按钮 -->
+<button onclick="loadEmployees()">查询全部</button>
+<button onclick="showSearchByIdForm()">查询单个</button>
+<button onclick="showAddForm()">添加员工</button>
+
+<!-- 按 ID 搜索员工表单，初始隐藏 -->
+<form class="search-form" id="searchEmployeeForm" style="display:none;">
+    <label for="searchId">按 ID 搜索：</label>
+    <input type="text" id="searchId">
+    <button type="button" onclick="searchEmployeeById()">搜索</button>
+</form>
+
+<!-- 员工列表容器 -->
+<div id="employeeListContainer"></div>
+
+<!-- 添加员工表单 -->
+<form id="addEmployeeForm" style="display:none;">
+    <label for="employee_id">员工 ID:</label>
+    <input type="number" id="employee_id" required>
+    <label for="employee_name">员工姓名:</label>
+    <input type="text" id="employee_name" required>
+    <label for="position">职位:</label>
+    <input type="text" id="position" required>
+    <label for="contact_info">联系信息:</label>
+    <input type="text" id="contact_info" required>
+    <label for="join_date">入职日期:</label>
+    <input type="text" id="join_date" required>
+    <label for="work_status">工作状态:</label>
+    <input type="text" id="work_status" required>
+    <button type="submit">添加员工</button>
+</form>
+
+<!-- 更新员工表单 -->
+<form id="updateEmployeeForm" style="display:none;">
+    <input type="hidden" id="update_employee_id">
+    <label for="update_employee_name">员工姓名:</label>
+    <input type="text" id="update_employee_name" required>
+    <label for="update_position">职位:</label>
+    <input type="text" id="update_position" required>
+    <label for="update_contact_info">联系信息:</label>
+    <input type="text" id="update_contact_info" required>
+    <label for="update_join_date">入职日期:</label>
+    <input type="text" id="update_join_date" required>
+    <label for="update_work_status">工作状态:</label>
+    <input type="text" id="update_work_status" required>
+    <button type="submit">更新员工</button>
+</form>
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    // 加载所有员工
+    function loadEmployees() {
+        axios.get('http://localhost:9090/employees')
+            .then(response => {
+                const employeeListContainer = document.getElementById('employeeListContainer');
+                employeeListContainer.innerHTML = ''; // 清空容器
+                const employees = response.data;
+                if (employees.length === 0) {
+                    employeeListContainer.innerHTML = '暂无员工数据。';
+                } else {
+                    employees.forEach(employee => {
+                        const employeeItem = document.createElement('div');
+                        employeeItem.innerHTML = `
+                            <p>员工 ID: ${employee.employee_id}</p>
+                            <p>员工姓名: ${employee.employee_name}</p>
+                            <p>职位: ${employee.position}</p>
+                            <p>联系信息: ${employee.contact_info}</p>
+                            <p>入职日期: ${employee.join_date}</p>
+                            <p>工作状态: ${employee.work_status}</p>
+                            <button onclick="deleteEmployee(${employee.employee_id})">删除</button>
+                            <button onclick="showUpdateForm(${employee.employee_id})">更新</button>
+                        `;
+                        employeeListContainer.appendChild(employeeItem);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching employees:', error);
+                const employeeListContainer = document.getElementById('employeeListContainer');
+                employeeListContainer.innerHTML = '加载员工信息失败，请稍后重试。';
+            });
+    }
+
+    // 显示按 ID 查询表单
+    function showSearchByIdForm() {
+        const searchForm = document.getElementById('searchEmployeeForm');
+        searchForm.style.display = 'block';
+    }
+
+    // 按 ID 查询员工
+    function searchEmployeeById() {
+        const searchId = document.getElementById('searchId').value;
+        if (searchId) {
+            axios.get(`http://localhost:9090/employees/${searchId}`)
+                .then(response => {
+                    const employeeListContainer = document.getElementById('employeeListContainer');
+                    employeeListContainer.innerHTML = '';
+                    const employee = response.data;
+                    if (employee) {
+                        const employeeItem = document.createElement('div');
+                        employeeItem.innerHTML = `
+                            <p>员工 ID: ${employee.employee_id}</p>
+                            <p>员工姓名: ${employee.employee_name}</p>
+                            <p>职位: ${employee.position}</p>
+                            <p>联系信息: ${employee.contact_info}</p>
+                            <p>入职日期: ${employee.join_date}</p>
+                            <p>工作状态: ${employee.work_status}</p>
+                            <button onclick="deleteEmployee(${employee.employee_id})">删除</button>
+                            <button onclick="showUpdateForm(${employee.employee_id})">更新</button>
+                        `;
+                        employeeListContainer.appendChild(employeeItem);
+                    } else {
+                        employeeListContainer.innerHTML = '未找到对应员工。';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching employee:', error);
+                    const employeeListContainer = document.getElementById('employeeListContainer');
+                    employeeListContainer.innerHTML = '查询员工信息失败，请稍后重试。';
+                });
+        }
+    }
+
+    // 显示添加员工表单
+    function showAddForm() {
+        document.getElementById('addEmployeeForm').style.display = 'block';
+        document.getElementById('updateEmployeeForm').style.display = 'none';
+    }
+
+    // 添加员工
+    document.getElementById('addEmployeeForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const employee_id = document.getElementById('employee_id').value;
+        const employee_name = document.getElementById('employee_name').value;
+        const position = document.getElementById('position').value;
+        const contact_info = document.getElementById('contact_info').value;
+        const join_date = document.getElementById('join_date').value;
+        const work_status = document.getElementById('work_status').value;
+
+        axios.post('http://localhost:9090/employees', {
+            employee_id: employee_id, // 添加员工 ID
+            employee_name: employee_name,
+            position: position,
+            contact_info: contact_info,
+            join_date: join_date,
+            work_status: work_status
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('添加成功');
+                    loadEmployees(); // 刷新列表
+                    document.getElementById('addEmployeeForm').reset();
+                    document.getElementById('addEmployeeForm').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error adding employee:', error);
+            });
+    });
+
+    // 显示更新员工表单
+    function showUpdateForm(employeeId) {
+        axios.get(`http://localhost:9090/employees/${employeeId}`)
+            .then(response => {
+                const employee = response.data;
+                document.getElementById('update_employee_id').value = employee.employee_id;
+                document.getElementById('update_employee_name').value = employee.employee_name;
+                document.getElementById('update_position').value = employee.position;
+                document.getElementById('update_contact_info').value = employee.contact_info;
+                document.getElementById('update_join_date').value = employee.join_date;
+                document.getElementById('update_work_status').value = employee.work_status;
+
+                document.getElementById('addEmployeeForm').style.display = 'none';
+                document.getElementById('updateEmployeeForm').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching employee for update:', error);
+            });
+    }
+
+    // 更新员工
+    document.getElementById('updateEmployeeForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const employee_id = document.getElementById('update_employee_id').value;
+        const employee_name = document.getElementById('update_employee_name').value;
+        const position = document.getElementById('update_position').value;
+        const contact_info = document.getElementById('update_contact_info').value;
+        const join_date = document.getElementById('update_join_date').value;
+        const work_status = document.getElementById('update_work_status').value;
+
+        axios.put(`http://localhost:9090/employees/${employee_id}`, {
+            employee_name: employee_name,
+            position: position,
+            contact_info: contact_info,
+            join_date: join_date,
+            work_status: work_status
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('更新成功');
+                    loadEmployees(); // 刷新列表
+                    document.getElementById('updateEmployeeForm').reset();
+                    document.getElementById('updateEmployeeForm').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error updating employee:', error);
+            });
+    });
+
+    // 删除员工
+    function deleteEmployee(employeeId) {
+        if (confirm('确定要删除该员工吗？')) {
+            axios.delete(`http://localhost:9090/employees/${employeeId}`)
+                .then(response => {
+                    if (response.status === 200) {
+                        alert('删除成功');
+                        loadEmployees(); // 刷新列表
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting employee:', error);
+                });
+        }
+    }
+</script>
+</body>
+
+</html>

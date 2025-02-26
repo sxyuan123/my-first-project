@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收入记录管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ccc;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        form {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        form input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        form button {
+            padding: 8px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .search-form {
+            margin-bottom: 20px;
+        }
+
+        .search-form label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .search-form input {
+            width: 200px;
+            display: inline-block;
+        }
+
+        #incomeListContainer {
+            margin-top: 20px;
+        }
+
+        .income-item {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+<h1>收入记录管理</h1>
+
+<!-- 操作按钮 -->
+<button onclick="loadIncomes()">查询全部记录</button>
+<button onclick="showSearchByIdForm()">查询单个记录</button>
+<button onclick="showAddForm()">添加收入记录</button>
+
+<!-- 按 ID 搜索收入记录表单，初始隐藏 -->
+<form class="search-form" id="searchIncomeForm" style="display:none;">
+    <label for="searchId">按 ID 搜索：</label>
+    <input type="text" id="searchId">
+    <button type="button" onclick="searchIncomeById()">搜索</button>
+</form>
+
+<!-- 添加收入记录表单 -->
+<form id="addIncomeForm" style="display:none;">
+    <label for="income_id">收入 ID:</label>
+    <input type="number" id="income_id" required>
+    <label for="order_id">订单 ID:</label>
+    <input type="number" id="order_id" required>
+    <label for="sales_income">销售收入:</label>
+    <input type="number" id="sales_income" required>
+    <label for="time_period">时间段:</label>
+    <input type="datetime-local" id="time_period" required>
+    <label for="product_category">产品类别:</label>
+    <input type="text" id="product_category" required>
+    <label for="payment_status">支付状态:</label>
+    <input type="text" id="payment_status" required>
+    <button type="submit">添加收入记录</button>
+</form>
+
+<!-- 更新收入记录表单 -->
+<form id="updateIncomeForm" style="display:none;">
+    <input type="hidden" id="update_income_id">
+    <label for="update_order_id">订单 ID:</label>
+    <input type="number" id="update_order_id" required>
+    <label for="update_sales_income">销售收入:</label>
+    <input type="number" id="update_sales_income" required>
+    <label for="update_time_period">时间段:</label>
+    <input type="datetime-local" id="update_time_period" required>
+    <label for="update_product_category">产品类别:</label>
+    <input type="text" id="update_product_category" required>
+    <label for="update_payment_status">支付状态:</label>
+    <input type="text" id="update_payment_status" required>
+    <button type="submit">更新收入记录</button>
+</form>
+
+<!-- 收入记录列表容器 -->
+<div id="incomeListContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    // 加载所有收入记录并按收入ID排序
+    function loadIncomes() {
+        axios.get('http://localhost:9090/incomeRecords')
+            .then(response => {
+                const incomeListContainer = document.getElementById('incomeListContainer');
+                incomeListContainer.innerHTML = '';
+                let incomes = response.data;
+
+                // 按收入ID排序
+                incomes.sort((a, b) => a.income_id - b.income_id);
+
+                if (incomes.length === 0) {
+                    incomeListContainer.innerHTML = '<p>暂无收入记录数据。</p>';
+                } else {
+                    incomes.forEach(income => {
+                        const incomeItem = document.createElement('div');
+                        incomeItem.className = 'income-item';
+                        incomeItem.innerHTML = `
+                            <p>收入 ID: ${income.income_id}</p>
+                            <p>订单 ID: ${income.order_id}</p>
+                            <p>销售收入: ${income.sales_income}</p>
+                            <p>时间段: ${income.time_period}</p>
+                            <p>产品类别: ${income.product_category}</p>
+                            <p>支付状态: ${income.payment_status}</p>
+                            <button onclick="deleteIncome(${income.income_id})">删除</button>
+                            <button onclick="showUpdateForm(${income.income_id})">更新</button>
+                        `;
+                        incomeListContainer.appendChild(incomeItem);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching incomes:', error);
+                const incomeListContainer = document.getElementById('incomeListContainer');
+                incomeListContainer.innerHTML = '<p>加载收入记录信息失败，请稍后重试。</p>';
+            });
+    }
+
+    // 显示按 ID 查询表单
+    function showSearchByIdForm() {
+        document.getElementById('searchIncomeForm').style.display = 'block';
+        document.getElementById('addIncomeForm').style.display = 'none';
+        document.getElementById('updateIncomeForm').style.display = 'none';
+    }
+
+    // 按 ID 查询收入记录
+    function searchIncomeById() {
+        const searchId = document.getElementById('searchId').value;
+        if (searchId) {
+            axios.get(`http://localhost:9090/incomeRecords/${searchId}`)
+                .then(response => {
+                    const incomeListContainer = document.getElementById('incomeListContainer');
+                    incomeListContainer.innerHTML = '';
+                    const income = response.data;
+                    if (income) {
+                        const incomeItem = document.createElement('div');
+                        incomeItem.className = 'income-item';
+                        incomeItem.innerHTML = `
+                            <p>收入 ID: ${income.income_id}</p>
+                            <p>订单 ID: ${income.order_id}</p>
+                            <p>销售收入: ${income.sales_income}</p>
+                            <p>时间段: ${income.time_period}</p>
+                            <p>产品类别: ${income.product_category}</p>
+                            <p>支付状态: ${income.payment_status}</p>
+                            <button onclick="deleteIncome(${income.income_id})">删除</button>
+                            <button onclick="showUpdateForm(${income.income_id})">更新</button>
+                        `;
+                        incomeListContainer.appendChild(incomeItem);
+                    } else {
+                        incomeListContainer.innerHTML = '<p>未找到对应收入记录。</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching income:', error);
+                    const incomeListContainer = document.getElementById('incomeListContainer');
+                    incomeListContainer.innerHTML = '<p>查询收入记录信息失败，请稍后重试。</p>';
+                });
+        }
+    }
+
+    // 显示添加收入记录表单
+    function showAddForm() {
+        document.getElementById('addIncomeForm').style.display = 'block';
+        document.getElementById('updateIncomeForm').style.display = 'none';
+        document.getElementById('searchIncomeForm').style.display = 'none';
+    }
+
+    // 添加收入记录
+    document.getElementById('addIncomeForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const income_id = document.getElementById('income_id').value;
+        const order_id = document.getElementById('order_id').value;
+        const sales_income = document.getElementById('sales_income').value;
+        const time_period = document.getElementById('time_period').value;
+        const product_category = document.getElementById('product_category').value;
+        const payment_status = document.getElementById('payment_status').value;
+
+        axios.post('http://localhost:9090/incomeRecords', {
+            income_id: income_id,
+            order_id: order_id,
+            sales_income: sales_income,
+            time_period: time_period,
+            product_category: product_category,
+            payment_status: payment_status
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('添加成功');
+                    loadIncomes(); // 刷新列表并排序
+                    document.getElementById('addIncomeForm').reset();
+                    document.getElementById('addIncomeForm').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error adding income:', error);
+                alert('添加失败，请稍后重试');
+            });
+    });
+
+    // 显示更新收入记录表单
+    function showUpdateForm(incomeId) {
+        axios.get(`http://localhost:9090/incomeRecords/${incomeId}`)
+            .then(response => {
+                const income = response.data;
+                document.getElementById('update_income_id').value = income.income_id;
+                document.getElementById('update_order_id').value = income.order_id;
+                document.getElementById('update_sales_income').value = income.sales_income;
+                document.getElementById('update_time_period').value = income.time_period;
+                document.getElementById('update_product_category').value = income.product_category;
+                document.getElementById('update_payment_status').value = income.payment_status;
+
+                document.getElementById('addIncomeForm').style.display = 'none';
+                document.getElementById('updateIncomeForm').style.display = 'block';
+                document.getElementById('searchIncomeForm').style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error fetching income for update:', error);
+            });
+    }
+
+    // 更新收入记录
+    document.getElementById('updateIncomeForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const income_id = document.getElementById('update_income_id').value;
+        const order_id = document.getElementById('update_order_id').value;
+        const sales_income = document.getElementById('update_sales_income').value;
+        const time_period = document.getElementById('update_time_period').value;
+        const product_category = document.getElementById('update_product_category').value;
+        const payment_status = document.getElementById('update_payment_status').value;
+
+        axios.put(`http://localhost:9090/incomeRecords/${income_id}`, {
+            order_id: order_id,
+            sales_income: sales_income,
+            time_period: time_period,
+            product_category: product_category,
+            payment_status: payment_status
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('更新成功');
+                    loadIncomes(); // 刷新列表并排序
+                    document.getElementById('updateIncomeForm').reset();
+                    document.getElementById('updateIncomeForm').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error updating income:', error);
+                alert('更新失败，请稍后重试');
+            });
+    });
+
+    // 删除收入记录
+    function deleteIncome(incomeId) {
+        if (confirm('确定要删除该收入记录吗？')) {
+            axios.delete(`http://localhost:9090/incomeRecords/${incomeId}`)
+                .then(response => {
+                    if (response.status === 200) {
+                        alert('删除成功');
+                        loadIncomes(); // 刷新列表并排序
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting income:', error);
+                    alert('删除失败，请稍后重试');
+                });
+        }
+    }
+</script>
+</body>
+</html>

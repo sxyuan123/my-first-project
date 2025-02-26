@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+ 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+ 
+</head>
+ 
+<body>
+    <div> username: <input class="username" type="text"> </div>
+    <div> password: <input class="password" type="password"> </div>
+    <div> nickname: <input class="nickname" type="text"> </div>
+    <div> email: <input class="email" type="text"> </div>
+    <div> phone: <input class="phone" type="text"> </div>
+    <div> address: <input class="address" type="text"> </div>
+    <!-- 引入axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+ 
+    <script>
+        var username = document.querySelector('.username');  
+        var password = document.querySelector('.password');
+        var nickname = document.querySelector('.nickname');
+        var email = document.querySelector('.email');
+        var phone = document.querySelector('.phone');
+        var address = document.querySelector('.address');
+        // 2. 使用axios函数
+        axios({
+            url: 'http://localhost:9090/user/'
+        }).then((result) => {
+            console.log(result);
+            username.value = result.data[0].username    //这里全部是data[0],因为只有一个对象
+            password.value = result.data[0].password;
+            nickname.value = result.data[0].nickname;
+            email.value = result.data[0].email;
+            phone.value = result.data[0].phone;
+            address.value = result.data[0].address;
+        })
+    </script>
+ 
+</body>
+</html>

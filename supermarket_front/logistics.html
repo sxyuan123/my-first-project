@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>后勤人员界面</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f4f4f4;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+    }
+
+    .module-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .module {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      width: 300px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .module:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .module h2 {
+      margin-top: 0;
+      color: #007BFF;
+    }
+
+    .module p {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .module a {
+      text-decoration: none;
+      color: white;
+      background-color: #007BFF;
+      padding: 10px 15px;
+      border-radius: 5px;
+      display: inline-block;
+      transition: background-color 0.2s;
+    }
+
+    .module a:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+
+<body>
+<h1>后勤人员界面</h1>
+<div class="module-container">
+  <!-- 商品管理 -->
+  <div class="module">
+    <h2>商品管理</h2>
+    <p>管理商品信息，包括添加、更新和删除商品。</p>
+    <a href="product.html">进入</a>
+  </div>
+
+  <!-- 商品分类管理 -->
+  <div class="module">
+    <h2>商品分类管理</h2>
+    <p>管理商品分类，维护分类信息。</p>
+    <a href="productcategory.html">进入</a>
+  </div>
+
+  <!-- 库存管理 -->
+  <div class="module">
+    <h2>库存管理</h2>
+    <p>查看和管理商品库存信息。</p>
+    <a href="inventoryRecords.html">进入</a>
+  </div>
+
+  <!-- 库存补充管理 -->
+  <div class="module">
+    <h2>库存补充管理</h2>
+    <p>管理库存补充请求和记录。</p>
+    <a href="inventoryReplenishmentSuggestions.html">进入</a>
+  </div>
+
+  <!-- 促销活动管理 -->
+  <div class="module">
+    <h2>促销活动管理</h2>
+    <p>管理促销活动，设置折扣和优惠。</p>
+    <a href="promotions.html">进入</a>
+  </div>
+
+  <!-- 供应商管理 -->
+  <div class="module">
+    <h2>供应商管理</h2>
+    <p>管理供应商信息，维护供应商资料。</p>
+    <a href="suppliers.html">进入</a>
+  </div>
+
+  <!-- 供应商发票管理 -->
+  <div class="module">
+    <h2>供应商发票管理</h2>
+    <p>管理供应商发票，记录和核对发票信息。</p>
+    <a href="invoice.html">进入</a>
+  </div>
+</div>
+</body>
+
+</html></html>

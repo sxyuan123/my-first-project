@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>库存补充建议管理</title>
+    <!-- 引入 Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      /* 渐变背景 */
+      body {
+        font-family: Arial, sans-serif;
+        padding: 60px 20px 20px; /* 顶部增加 60px 的 padding */
+        background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+        min-height: 100vh;
+      }
+
+      h1 {
+        color: #2c3e50;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: bold;
+      }
+
+      /* 按钮样式 */
+      .btn-custom {
+        margin-right: 10px;
+        margin-bottom: 10px;
+        padding: 10px 20px;
+        font-size: 16px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+      }
+
+      .btn-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      /* 表单样式 */
+      .form-custom {
+        background-color: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        max-width: 600px;
+        margin: 0 auto;
+        border: 1px solid #e0e0e0;
+      }
+
+      .form-custom label {
+        font-weight: bold;
+        color: #34495e;
+      }
+
+      .form-custom input,
+      .form-custom textarea {
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        padding: 10px;
+        font-size: 14px;
+      }
+
+      .form-custom input:focus,
+      .form-custom textarea:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+      }
+
+      /* 库存补充建议项样式 */
+      .suggestion-item {
+        background-color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 15px;
+        max-width: 800px;
+        margin: 0 auto;
+        border: 1px solid #e0e0e0;
+        text-align: left; /* 将文本对齐方式改为左对齐 */
+      }
+
+      .suggestion-item p {
+        margin: 10px 0;
+        color: #34495e;
+        font-size: 16px;
+        text-align: left; /* 确保段落文本也是左对齐 */
+      }
+
+      .suggestion-item strong {
+        color: #2c3e50;
+      }
+
+      /* 按钮组样式 */
+      .btn-group-custom {
+        margin-top: 15px;
+      }
+
+      .btn-group-custom .btn {
+        margin: 0 5px;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+      }
+
+      .btn-group-custom .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      /* 提示信息样式 */
+      .alert {
+        border-radius: 8px;
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 15px;
+        font-size: 16px;
+      }
+
+      /* 返回按钮样式 */
+      .back-button {
+        padding: 10px 20px;
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 5px;
+      }
+
+      .back-button:hover {
+        background-color: #5a6268;
+      }
+
+      /* 结果容器初始隐藏 */
+      #suggestionListContainer {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>库存补充建议管理</h1>
+
+      <!-- 操作按钮 -->
+      <div class="text-center">
+        <button class="btn btn-primary btn-custom" onclick="loadSuggestions()">
+          查询全部
+        </button>
+        <button
+          class="btn btn-secondary btn-custom"
+          onclick="showSearchByIdForm()"
+        >
+          查询单个
+        </button>
+        <button class="btn btn-success btn-custom" onclick="showAddForm()">
+          添加库存补充建议
+        </button>
+        <button class="back-button" onclick="goBack()">返回上一步</button>
+      </div>
+
+      <!-- 按 ID 搜索库存补充建议表单，初始隐藏 -->
+      <form class="form-custom" id="searchSuggestionForm" style="display: none">
+        <div class="mb-3">
+          <label for="searchId" class="form-label">按 ID 搜索：</label>
+          <input type="text" id="searchId" class="form-control" />
+        </div>
+        <div class="text-center">
+          <button
+            type="button"
+            class="btn btn-primary btn-custom"
+            onclick="searchSuggestionById()"
+          >
+            搜索
+          </button>
+        </div>
+      </form>
+
+      <!-- 库存补充建议列表容器 -->
+      <div id="suggestionListContainer"></div>
+
+      <!-- 添加库存补充建议表单 -->
+      <form id="addSuggestionForm" class="form-custom" style="display: none">
+        <div class="mb-3">
+          <label for="replenishment_id" class="form-label">建议单 ID:</label>
+          <input
+            type="number"
+            id="replenishment_id"
+            class="form-control"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="product_id" class="form-label">产品 ID:</label>
+          <input type="number" id="product_id" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label for="suggested_replenishment_quantity" class="form-label"
+            >建议补充数量:</label
+          >
+          <input
+            type="number"
+            id="suggested_replenishment_quantity"
+            class="form-control"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="suggested_replenishment_time" class="form-label"
+            >建议补充时间:</label
+          >
+          <input
+            type="date"
+            id="suggested_replenishment_time"
+            class="form-control"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="current_stock" class="form-label">当前库存:</label>
+          <input
+            type="number"
+            id="current_stock"
+            class="form-control"
+            required
+          />
+        </div>
+        <div class="text-center">
+          <button type="submit" class="btn btn-success btn-custom">
+            添加库存补充建议
+          </button>
+        </div>
+      </form>
+
+      <!-- 更新库存补充建议表单 -->
+      <form id="updateSuggestionForm" class="form-custom" style="display: none">
+        <input type="hidden" id="update_replenishment_id" />
+        <div class="mb-3">
+          <label for="update_product_id" class="form-label">产品 ID:</label>
+          <input
+            type="number"
+            id="update_product_id"
+            class="form-control"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label
+            for="update_suggested_replenishment_quantity"
+            class="form-label"
+            >建议补充数量:</label
+          >
+          <input
+            type="number"
+            id="update_suggested_replenishment_quantity"
+            class="form-control"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="update_suggested_replenishment_time" class="form-label"
+            >建议补充时间:</label
+          >
+          <input
+            type="date"
+            id="update_suggested_replenishment_time"
+            class="form-control"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="update_current_stock" class="form-label">当前库存:</label>
+          <input
+            type="number"
+            id="update_current_stock"
+            class="form-control"
+            required
+          />
+        </div>
+        <div class="text-center">
+          <button type="submit" class="btn btn-primary btn-custom">
+            更新库存补充建议
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 引入 Bootstrap JS 和 Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+      // 加载所有库存补充建议
+      function loadSuggestions() {
+        axios
+          .get("http://localhost:9090/inventoryReplenishmentSuggestions")
+          .then((response) => {
+            const suggestionListContainer = document.getElementById(
+              "suggestionListContainer"
+            );
+            suggestionListContainer.innerHTML = "";
+            const suggestions = response.data;
+            if (suggestions.length === 0) {
+              suggestionListContainer.innerHTML =
+                '<div class="alert alert-info">暂无库存补充建议数据。</div>';
+            } else {
+              suggestions.forEach((suggestion) => {
+                const suggestionItem = document.createElement("div");
+                suggestionItem.className = "suggestion-item";
+                suggestionItem.innerHTML = `
+                  <p><strong>建议 ID:</strong> ${suggestion.replenishment_id}</p>
+                  <p><strong>产品 ID:</strong> ${suggestion.product_id}</p>
+                  <p><strong>建议补充数量:</strong> ${suggestion.suggested_replenishment_quantity}</p>
+                  <p><strong>建议补充时间:</strong> ${suggestion.suggested_replenishment_time}</p>
+                  <p><strong>当前库存:</strong> ${suggestion.current_stock}</p>
+                  <div class="btn-group-custom">
+                    <button class="btn btn-danger btn-sm" onclick="deleteSuggestion(${suggestion.replenishment_id})">删除</button>
+                    <button class="btn btn-warning btn-sm" onclick="showUpdateForm(${suggestion.replenishment_id})">更新</button>
+                  </div>
+                `;
+                suggestionListContainer.appendChild(suggestionItem);
+              });
+            }
+            // 显示结果容器
+            suggestionListContainer.style.display = "block";
+          })
+          .catch((error) => {
+            console.error("Error fetching suggestions:", error);
+            const suggestionListContainer = document.getElementById(
+              "suggestionListContainer"
+            );
+            suggestionListContainer.innerHTML =
+              '<div class="alert alert-danger">加载库存补充建议信息失败，请稍后重试。</div>';
+            suggestionListContainer.style.display = "block";
+          });
+      }
+
+      // 显示按 ID 查询表单
+      function showSearchByIdForm() {
+        const searchForm = document.getElementById("searchSuggestionForm");
+        searchForm.style.display = "block";
+        document.getElementById("suggestionListContainer").style.display =
+          "none"; // 隐藏结果容器
+      }
+
+      // 按 ID 查询库存补充建议
+      function searchSuggestionById() {
+        const searchId = document.getElementById("searchId").value;
+        if (searchId) {
+          axios
+            .get(
+              `http://localhost:9090/inventoryReplenishmentSuggestions/${searchId}`
+            )
+            .then((response) => {
+              const suggestionListContainer = document.getElementById(
+                "suggestionListContainer"
+              );
+              suggestionListContainer.innerHTML = "";
+              const suggestion = response.data;
+              if (suggestion) {
+                const suggestionItem = document.createElement("div");
+                suggestionItem.className = "suggestion-item";
+                suggestionItem.innerHTML = `
+                  <p><strong>建议 ID:</strong> ${suggestion.replenishment_id}</p>
+                  <p><strong>产品 ID:</strong> ${suggestion.product_id}</p>
+                  <p><strong>建议补充数量:</strong> ${suggestion.suggested_replenishment_quantity}</p>
+                  <p><strong>建议补充时间:</strong> ${suggestion.suggested_replenishment_time}</p>
+                  <p><strong>当前库存:</strong> ${suggestion.current_stock}</p>
+                  <div class="btn-group-custom">
+                    <button class="btn btn-danger btn-sm" onclick="deleteSuggestion(${suggestion.replenishment_id})">删除</button>
+                    <button class="btn btn-warning btn-sm" onclick="showUpdateForm(${suggestion.replenishment_id})">更新</button>
+                  </div>
+                `;
+                suggestionListContainer.appendChild(suggestionItem);
+              } else {
+                suggestionListContainer.innerHTML =
+                  '<div class="alert alert-warning">未找到对应库存补充建议。</div>';
+              }
+              // 显示结果容器
+              suggestionListContainer.style.display = "block";
+            })
+            .catch((error) => {
+              console.error("Error searching suggestion:", error);
+              const suggestionListContainer = document.getElementById(
+                "suggestionListContainer"
+              );
+              suggestionListContainer.innerHTML =
+                '<div class="alert alert-danger">查询库存补充建议信息失败，请稍后重试。</div>';
+              suggestionListContainer.style.display = "block";
+            });
+        }
+      }
+
+      // 显示添加库存补充建议表单
+      function showAddForm() {
+        document.getElementById("addSuggestionForm").style.display = "block";
+        document.getElementById("updateSuggestionForm").style.display = "none";
+        document.getElementById("suggestionListContainer").style.display =
+          "none"; // 隐藏结果容器
+      }
+
+      // 添加库存补充建议
+      document
+        .getElementById("addSuggestionForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const replenishment_id =
+            document.getElementById("replenishment_id").value;
+          const product_id = document.getElementById("product_id").value;
+          const suggested_replenishment_quantity = document.getElementById(
+            "suggested_replenishment_quantity"
+          ).value;
+          const suggested_replenishment_time = document.getElementById(
+            "suggested_replenishment_time"
+          ).value;
+          const current_stock = document.getElementById("current_stock").value;
+
+          axios
+            .post("http://localhost:9090/inventoryReplenishmentSuggestions", {
+              replenishment_id: replenishment_id,
+              product_id: product_id,
+              suggested_replenishment_quantity:
+                suggested_replenishment_quantity,
+              suggested_replenishment_time: suggested_replenishment_time,
+              current_stock: current_stock,
+            })
+            .then((response) => {
+              if (response.status === 200 || response.status === 201) {
+                alert("添加成功");
+                loadSuggestions(); // 动态刷新页面
+                document.getElementById("addSuggestionForm").reset();
+                document.getElementById("addSuggestionForm").style.display =
+                  "none";
+              }
+            })
+            .catch((error) => {
+              console.error("Error adding suggestion:", error);
+            });
+        });
+
+      // 显示更新库存补充建议表单
+      function showUpdateForm(replenishmentId) {
+        axios
+          .get(
+            `http://localhost:9090/inventoryReplenishmentSuggestions/${replenishmentId}`
+          )
+          .then((response) => {
+            const suggestion = response.data;
+            document.getElementById("update_replenishment_id").value =
+              suggestion.replenishment_id;
+            document.getElementById("update_product_id").value =
+              suggestion.product_id;
+            document.getElementById(
+              "update_suggested_replenishment_quantity"
+            ).value = suggestion.suggested_replenishment_quantity;
+            document.getElementById(
+              "update_suggested_replenishment_time"
+            ).value = suggestion.suggested_replenishment_time;
+            document.getElementById("update_current_stock").value =
+              suggestion.current_stock;
+
+            document.getElementById("addSuggestionForm").style.display = "none";
+            document.getElementById("updateSuggestionForm").style.display =
+              "block";
+            document.getElementById("suggestionListContainer").style.display =
+              "none"; // 隐藏结果容器
+          })
+          .catch((error) => {
+            console.error("Error fetching suggestion for update:", error);
+          });
+      }
+
+      // 更新库存补充建议
+      document
+        .getElementById("updateSuggestionForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const replenishment_id = document.getElementById(
+            "update_replenishment_id"
+          ).value;
+          const product_id = document.getElementById("update_product_id").value;
+          const suggested_replenishment_quantity = document.getElementById(
+            "update_suggested_replenishment_quantity"
+          ).value;
+          const suggested_replenishment_time = document.getElementById(
+            "update_suggested_replenishment_time"
+          ).value;
+          const current_stock = document.getElementById(
+            "update_current_stock"
+          ).value;
+
+          axios
+            .put(
+              `http://localhost:9090/inventoryReplenishmentSuggestions/${replenishment_id}`,
+              {
+                product_id: product_id,
+                suggested_replenishment_quantity:
+                  suggested_replenishment_quantity,
+                suggested_replenishment_time: suggested_replenishment_time,
+                current_stock: current_stock,
+              }
+            )
+            .then((response) => {
+              if (response.status === 200) {
+                alert("更新成功");
+                loadSuggestions(); // 动态刷新页面
+                document.getElementById("updateSuggestionForm").reset();
+                document.getElementById("updateSuggestionForm").style.display =
+                  "none";
+              }
+            })
+            .catch((error) => {
+              console.error("Error updating suggestion:", error);
+            });
+        });
+
+      // 删除库存补充建议
+      function deleteSuggestion(replenishmentId) {
+        if (confirm("确定要删除这个库存补充建议吗？")) {
+          axios
+            .delete(
+              `http://localhost:9090/inventoryReplenishmentSuggestions/${replenishmentId}`
+            )
+            .then((response) => {
+              if (response.status === 200 || response.status === 204) {
+                alert("删除成功");
+                loadSuggestions(); // 动态刷新页面
+              }
+            })
+            .catch((error) => {
+              console.error("Error deleting suggestion:", error);
+            });
+        }
+      }
+
+      // 返回上一步
+      function goBack() {
+        hideAllForms(); // 隐藏所有表单
+        document.getElementById("suggestionListContainer").innerHTML = ""; // 清空列表
+        document.getElementById("suggestionListContainer").style.display =
+          "none"; // 隐藏结果容器
+      }
+
+      // 隐藏所有表单
+      function hideAllForms() {
+        document.getElementById("searchSuggestionForm").style.display = "none";
+        document.getElementById("addSuggestionForm").style.display = "none";
+        document.getElementById("updateSuggestionForm").style.display = "none";
+      }
+    </script>
+  </body>
+</html>

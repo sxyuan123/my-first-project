@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>供应商发票和结算管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ccc;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        form {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        form input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        form textarea {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        form button {
+            padding: 8px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .search-form {
+            margin-bottom: 20px;
+        }
+
+        .search-form label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .search-form input {
+            width: 200px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body>
+<h1>供应商发票和结算管理</h1>
+
+<!-- 操作按钮 -->
+<button onclick="loadAllInvoices()">查询全部</button>
+<button onclick="showSearchByIdForm()">查询单个</button>
+<button onclick="showAddForm()">添加发票</button>
+
+<!-- 按 ID 搜索发票表单，初始隐藏 -->
+<form class="search-form" id="searchInvoiceByIdForm" style="display:none;">
+    <label for="searchInvoiceId">按发票ID搜索: </label>
+    <input type="text" id="searchInvoiceId">
+    <button type="button" onclick="searchInvoiceById()">搜索</button>
+</form>
+
+<!-- 添加发票表单 -->
+<form id="addInvoiceForm" style="display:none;">
+    <label for="invoice_id">发票 ID:</label>
+    <input type="number" id="invoice_id" required>
+    <label for="supplierId">供应商 ID:</label>
+    <input type="number" id="supplierId" required>
+    <label for="settlementAmount">结算金额:</label>
+    <input type="number" step="0.01" id="settlementAmount" required>
+    <label for="invoiceDate">发票日期:</label>
+    <input type="date" id="invoiceDate" required>
+    <label for="settlementDate">结算日期:</label>
+    <input type="date" id="settlementDate" required>
+    <label for="settlementStatus">结算状态:</label>
+    <input type="text" id="settlementStatus" required>
+    <button type="submit">添加发票</button>
+</form>
+
+<!-- 更新发票表单 -->
+<form id="updateInvoiceForm" style="display:none;">
+    <input type="hidden" id="update_invoice_id">
+    <label for="updateSupplierId">供应商 ID:</label>
+    <input type="number" id="updateSupplierId" required>
+    <label for="updateSettlementAmount">结算金额:</label>
+    <input type="number" step="0.01" id="updateSettlementAmount" required>
+    <label for="updateInvoiceDate">发票日期:</label>
+    <input type="date" id="updateInvoiceDate" required>
+    <label for="updateSettlementDate">结算日期:</label>
+    <input type="date" id="updateSettlementDate" required>
+    <label for="updateSettlementStatus">结算状态:</label>
+    <input type="text" id="updateSettlementStatus" required>
+    <button type="submit">更新发票</button>
+</form>
+
+<!-- 发票列表容器 -->
+<div id="invoiceListContainer"></div>
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    // 隐藏所有表单
+    function hideAllForms() {
+        document.getElementById('searchInvoiceByIdForm').style.display = 'none';
+        document.getElementById('addInvoiceForm').style.display = 'none';
+        document.getElementById('updateInvoiceForm').style.display = 'none';
+    }
+
+    // 加载所有发票
+    function loadAllInvoices() {
+        axios.get('http://localhost:9090/invoices')
+            .then(response => {
+                const invoiceListContainer = document.getElementById('invoiceListContainer');
+                invoiceListContainer.innerHTML = '';
+                const invoices = response.data;
+                if (invoices.length === 0) {
+                    invoiceListContainer.innerHTML = '暂无发票数据。';
+                } else {
+                    const table = document.createElement('table');
+                    table.innerHTML = `<tr><th>发票ID</th><th>供应商ID</th><th>结算金额</th><th>发票日期</th><th>结算日期</th><th>结算状态</th><th>操作</th></tr>`;
+                    invoices.forEach(invoice => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${invoice.invoice_id}</td>
+                            <td>${invoice.supplier_id}</td>
+                            <td>${invoice.settlement_amount}</td>
+                            <td>${invoice.invoice_date}</td>
+                            <td>${invoice.settlement_date}</td>
+                            <td>${invoice.settlement_status}</td>
+                            <td><button onclick="showUpdateForm(${invoice.invoice_id})">更新</button> <button onclick="deleteInvoice(${invoice.invoice_id})">删除</button></td>
+                        `;
+                        table.appendChild(row);
+                    });
+                    invoiceListContainer.appendChild(table);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching invoices:', error);
+                const invoiceListContainer = document.getElementById('invoiceListContainer');
+                invoiceListContainer.innerHTML = '加载发票信息失败，请稍后重试。';
+            });
+    }
+
+    // 显示按 ID 查询表单
+    function showSearchByIdForm() {
+        hideAllForms();
+        document.getElementById('searchInvoiceByIdForm').style.display = 'block';
+    }
+
+    // 按发票ID查询发票
+    function searchInvoiceById() {
+        const searchInvoiceId = document.getElementById('searchInvoiceId').value;
+        if (searchInvoiceId) {
+            axios.get(`http://localhost:9090/invoices/${searchInvoiceId}`)
+                .then(response => {
+                    const invoiceListContainer = document.getElementById('invoiceListContainer');
+                    invoiceListContainer.innerHTML = '';
+                    const invoice = response.data;
+                    if (invoice) {
+                        const table = document.createElement('table');
+                        table.innerHTML = `<tr><th>发票ID</th><th>供应商ID</th><th>结算金额</th><th>发票日期</th><th>结算日期</th><th>结算状态</th><th>操作</th></tr>`;
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${invoice.invoice_id}</td>
+                            <td>${invoice.supplier_id}</td>
+                            <td>${invoice.settlement_amount}</td>
+                            <td>${invoice.invoice_date}</td>
+                            <td>${invoice.settlement_date}</td>
+                            <td>${invoice.settlement_status}</td>
+                            <td><button onclick="showUpdateForm(${invoice.invoice_id})">更新</button> <button onclick="deleteInvoice(${invoice.invoice_id})">删除</button></td>
+                        `;
+                        table.appendChild(row);
+                        invoiceListContainer.appendChild(table);
+                    } else {
+                        invoiceListContainer.innerHTML = '未找到对应发票。';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching invoice by ID:', error);
+                    const invoiceListContainer = document.getElementById('invoiceListContainer');
+                    invoiceListContainer.innerHTML = '查询发票信息失败，请稍后重试。';
+                });
+        }
+    }
+
+    // 显示添加发票表单
+    function showAddForm() {
+        hideAllForms();
+        document.getElementById('addInvoiceForm').style.display = 'block';
+    }
+
+    // 添加发票
+    document.getElementById('addInvoiceForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const invoice_id = document.getElementById('invoice_id').value;
+        const supplierId = document.getElementById('supplierId').value;
+        const settlementAmount = document.getElementById('settlementAmount').value;
+        const invoiceDate = document.getElementById('invoiceDate').value;
+        const settlementDate = document.getElementById('settlementDate').value;
+        const settlementStatus = document.getElementById('settlementStatus').value;
+
+        axios.post('http://localhost:9090/invoices', {
+            invoice_id: invoice_id,
+            supplier_id: supplierId,
+            settlement_amount: settlementAmount,
+            invoice_date: invoiceDate,
+            settlement_date: settlementDate,
+            settlement_status: settlementStatus
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('添加成功');
+                    loadAllInvoices();
+                    document.getElementById('addInvoiceForm').reset();
+                    hideAllForms();
+                }
+            })
+            .catch(error => {
+                console.error('Error adding invoice:', error);
+                alert('添加失败，请稍后重试');
+            });
+    });
+
+    // 显示更新发票表单
+    function showUpdateForm(invoiceId) {
+        axios.get(`http://localhost:9090/invoices/${invoiceId}`)
+            .then(response => {
+                const invoice = response.data;
+                document.getElementById('update_invoice_id').value = invoice.invoice_id;
+                document.getElementById('updateSupplierId').value = invoice.supplier_id;
+                document.getElementById('updateSettlementAmount').value = invoice.settlement_amount;
+                document.getElementById('updateInvoiceDate').value = invoice.invoice_date;
+                document.getElementById('updateSettlementDate').value = invoice.settlement_date;
+                document.getElementById('updateSettlementStatus').value = invoice.settlement_status;
+
+                hideAllForms();
+                document.getElementById('updateInvoiceForm').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching invoice for update:', error);
+            });
+    }
+
+    // 更新发票
+    document.getElementById('updateInvoiceForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const invoice_id = document.getElementById('update_invoice_id').value;
+        const supplierId = document.getElementById('updateSupplierId').value;
+        const settlementAmount = document.getElementById('updateSettlementAmount').value;
+        const invoiceDate = document.getElementById('updateInvoiceDate').value;
+        const settlementDate = document.getElementById('updateSettlementDate').value;
+        const settlementStatus = document.getElementById('updateSettlementStatus').value;
+
+        axios.put(`http://localhost:9090/invoices/${invoice_id}`, {
+            supplier_id: supplierId,
+            settlement_amount: settlementAmount,
+            invoice_date: invoiceDate,
+            settlement_date: settlementDate,
+            settlement_status: settlementStatus
+        })
+            .then(response => {
+                if (response.status === 200) {
+                    alert('更新成功');
+                    loadAllInvoices();
+                    document.getElementById('updateInvoiceForm').reset();
+                    hideAllForms();
+                }
+            })
+            .catch(error => {
+                console.error('Error updating invoice:', error);
+                alert('更新失败，请稍后重试');
+            });
+    });
+
+    // 删除发票
+    function deleteInvoice(invoiceId) {
+        if (confirm('确定要删除该发票吗？')) {
+            axios.delete(`http://localhost:9090/invoices/${invoiceId}`)
+                .then(response => {
+                    if (response.status === 200) {
+                        alert('删除成功');
+                        loadAllInvoices();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting invoice:', error);
+                    alert('删除失败，请稍后重试');
+                });
+        }
+    }
+</script>
+</body>
+
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>财务人员界面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .module-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .module {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            width: 300px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .module:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .module h2 {
+            margin-top: 0;
+            color: #007BFF;
+        }
+
+        .module p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .module a {
+            text-decoration: none;
+            color: white;
+            background-color: #007BFF;
+            padding: 10px 15px;
+            border-radius: 5px;
+            display: inline-block;
+            transition: background-color 0.2s;
+        }
+
+        .module a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+<h1>财务人员界面</h1>
+<div class="module-container">
+    <!-- 收入记录管理 -->
+    <div class="module">
+        <h2>收入记录管理</h2>
+        <p>管理公司收入记录，包括收入金额和时间。</p>
+        <a href="incomerecord.html">进入</a>
+    </div>
+
+    <!-- 支出记录管理 -->
+    <div class="module">
+        <h2>支出记录管理</h2>
+        <p>管理公司支出记录，包括支出金额和时间。</p>
+        <a href="ExpenseRecord.html">进入</a>
+    </div>
+
+    <!-- 财务报告管理 -->
+    <div class="module">
+        <h2>财务报告管理</h2>
+        <p>生成和管理财务报告，查看财务总览。</p>
+        <a href="financial.html">进入</a>
+    </div>
+</div>
+</body>
+
+</html>

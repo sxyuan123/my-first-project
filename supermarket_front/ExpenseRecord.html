@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>支出记录管理</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    table,
+    th,
+    td {
+      border: 1px solid #ccc;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      text-align: left;
+    }
+
+    form {
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    }
+
+    form label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    form input {
+      width: 100%;
+      padding: 5px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+
+    form button {
+      padding: 8px 15px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .search-form {
+      margin-bottom: 20px;
+    }
+
+    .search-form label {
+      display: inline-block;
+      margin-right: 10px;
+    }
+
+    .search-form input {
+      width: 200px;
+      display: inline-block;
+    }
+  </style>
+</head>
+
+<body>
+<h1>支出记录管理</h1>
+
+<!-- 按 ID 搜索按钮 -->
+<button onclick="toggleSearchForm()">按ID搜索支出记录</button>
+
+<!-- 按 ID 搜索支出记录表单，初始为隐藏 -->
+<form class="search-form" id="searchExpenseForm" style="display:none;">
+  <label for="searchId">按 ID 搜索：</label>
+  <input type="text" id="searchId">
+  <button type="button" onclick="searchExpenseById()">搜索</button>
+</form>
+
+<!-- 查看全部支出记录按钮 -->
+<button onclick="toggleExpenseList()">查看全部支出记录</button>
+
+<!-- 支出记录列表容器 -->
+<div id="expenseListContainer" style="display:none;"></div>
+
+<!-- 添加支出记录表单 -->
+<form id="addExpenseForm" style="display:none;">
+  <label for="expense_id">支出 ID:</label>
+  <input type="text" id="expense_id" required>
+  <label for="expense_type">支出类型:</label>
+  <input type="text" id="expense_type" required>
+  <label for="amount">支出金额:</label>
+  <input type="number" id="amount" required>
+  <label for="expense_date">支出日期:</label>
+  <input type="date" id="expense_date" required>
+  <button type="submit">添加支出记录</button>
+</form>
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+  // 加载所有支出记录
+  function loadExpenses() {
+    axios.get('http://localhost:9090/expenseRecords')
+      .then(response => {
+        const expenseListContainer = document.getElementById('expenseListContainer');
+        expenseListContainer.innerHTML = '';  // 清空容器
+        const expenses = response.data;
+        if (expenses.length === 0) {
+          expenseListContainer.innerHTML = '暂无支出记录数据。';
+        } else {
+          expenses.forEach(expense => {
+            const expenseItem = document.createElement('div');
+            expenseItem.innerHTML = `
+              <p>支出 ID: ${expense.expense_id}</p>
+              <p>支出类型: ${expense.expense_type}</p>
+              <p>支出金额: ${expense.amount}</p>
+              <p>支出日期: ${expense.expense_date}</p>
+              <button onclick="deleteExpense(${expense.expense_id})">删除</button>
+            `;
+            expenseListContainer.appendChild(expenseItem);
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching expenses:', error);
+        const expenseListContainer = document.getElementById('expenseListContainer');
+        expenseListContainer.innerHTML = '加载支出记录信息失败，请稍后重试。';
+      });
+  }
+
+  // 按 ID 查询支出记录
+  function searchExpenseById() {
+    const searchId = document.getElementById('searchId').value;
+    if (searchId) {
+      axios.get(`http://localhost:9090/expenseRecords/${searchId}`)
+        .then(response => {
+          const expenseListContainer = document.getElementById('expenseListContainer');
+          expenseListContainer.innerHTML = '';  // 清空容器
+          const expense = response.data;
+          if (expense) {
+            const expenseItem = document.createElement('div');
+            expenseItem.innerHTML = `
+              <p>支出 ID: ${expense.expense_id}</p>
+              <p>支出类型: ${expense.expense_type}</p>
+              <p>支出金额: ${expense.amount}</p>
+              <p>支出日期: ${expense.expense_date}</p>
+              <button onclick="deleteExpense(${expense.expense_id})">删除</button>
+            `;
+            expenseListContainer.appendChild(expenseItem);
+          } else {
+            expenseListContainer.innerHTML = '未找到对应支出记录。';
+          }
+        })
+        .catch(error => {
+          console.error('Error searching expense:', error);
+          const expenseListContainer = document.getElementById('expenseListContainer');
+          expenseListContainer.innerHTML = '查询支出记录信息失败，请稍后重试。';
+        });
+    }
+  }
+
+  // 显示/隐藏搜索表单
+  function toggleSearchForm() {
+    const searchForm = document.getElementById('searchExpenseForm');
+    searchForm.style.display = (searchForm.style.display === 'none') ? 'block' : 'none';
+  }
+
+  // 添加支出记录
+  document.getElementById('addExpenseForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const expense_id = document.getElementById('expense_id').value;
+    const expense_type = document.getElementById('expense_type').value;
+    const amount = document.getElementById('amount').value;
+    const expense_date = document.getElementById('expense_date').value;
+
+    axios.post('http://localhost:9090/expenseRecords', {
+      "expense_id": expense_id,
+      "expense_type": expense_type,
+      "amount": amount,
+      "expense_date": expense_date
+    })
+    .then(response => {
+      if (response.status === 200) {
+        loadExpenses();  // 强制重新加载支出记录列表
+        document.getElementById('addExpenseForm').reset();  // 重置表单
+        document.getElementById('addExpenseForm').style.display = 'none';  // 隐藏表单
+      }
+    })
+    .catch(error => {
+      console.error('Error adding expense:', error);
+    });
+  });
+
+  // 删除支出记录
+  function deleteExpense(expenseId) {
+    if (confirm('确定要删除该支出记录吗?')) {
+      axios.delete(`http://localhost:9090/expenseRecords/${expenseId}`)
+        .then(response => {
+          if (response.status === 200) {
+            loadExpenses();  // 强制重新加载支出记录列表
+          }
+        })
+        .catch(error => {
+          console.error('Error deleting expense:', error);
+        });
+    }
+  }
+
+  // 页面加载时加载支出记录列表
+  window.onload = loadExpenses;
+
+  // 显示/隐藏查看全部支出记录
+  function toggleExpenseList() {
+    const expenseListContainer = document.getElementById('expenseListContainer');
+    if (expenseListContainer.style.display === 'none') {
+      expenseListContainer.style.display = 'block';
+      loadExpenses();  // 加载并显示全部数据
+    } else {
+      expenseListContainer.style.display = 'none';
+    }
+  }
+
+  // 显示添加支出记录表单按钮
+  const addExpenseButton = document.createElement('button');
+  addExpenseButton.textContent = "添加支出记录";
+  addExpenseButton.onclick = function () {
+    document.getElementById('addExpenseForm').style.display = 'block';
+  };
+  document.body.appendChild(addExpenseButton);
+</script>
+</body>
+
+</html>
